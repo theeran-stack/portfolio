@@ -20,14 +20,20 @@ import {
   Check, 
   Copy,
   Code,
-  Compass
+  Compass,
+  Image as ImageIcon,
+  Maximize2,
+  X,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 
 export default function ForgePage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
-  const [expandedWeek, setExpandedWeek] = useState<number | null>(0); // Week 0 open by default
+  const [expandedWeek, setExpandedWeek] = useState<number | null>(1); // Week 1 open by default
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const [activeLightbox, setActiveLightbox] = useState<{ weekNumber: number; imageIndex: number } | null>(null);
 
   const categories = ["All", "Completed", "In Progress"];
 
@@ -42,8 +48,43 @@ export default function ForgePage() {
     return matchesSearch && matchesCategory;
   });
 
+  const activeLightboxWeek = activeLightbox !== null 
+    ? forgeWeeksData.find((w) => w.weekNumber === activeLightbox.weekNumber)
+    : null;
+
+  const currentGalleryItem = activeLightboxWeek && activeLightboxWeek.galleryImages 
+    ? activeLightboxWeek.galleryImages[activeLightbox!.imageIndex]
+    : null;
+
+  const currentLightboxImageUrl = currentGalleryItem
+    ? typeof currentGalleryItem === "string" ? currentGalleryItem : currentGalleryItem.url
+    : "";
+
+  const currentLightboxCaption = currentGalleryItem
+    ? typeof currentGalleryItem === "string" ? `Week ${activeLightboxWeek?.weekNumber} Image` : currentGalleryItem.caption
+    : "";
+
+  const handleNextLightboxImage = () => {
+    if (!activeLightboxWeek || !activeLightboxWeek.galleryImages) return;
+    const total = activeLightboxWeek.galleryImages.length;
+    setActiveLightbox((prev) => prev ? { ...prev, imageIndex: (prev.imageIndex + 1) % total } : null);
+  };
+
+  const handlePrevLightboxImage = () => {
+    if (!activeLightboxWeek || !activeLightboxWeek.galleryImages) return;
+    const total = activeLightboxWeek.galleryImages.length;
+    setActiveLightbox((prev) => prev ? { ...prev, imageIndex: (prev.imageIndex - 1 + total) % total } : null);
+  };
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (activeLightbox !== null) {
+        if (e.key === "ArrowRight") handleNextLightboxImage();
+        if (e.key === "ArrowLeft") handlePrevLightboxImage();
+        if (e.key === "Escape") setActiveLightbox(null);
+        return;
+      }
+
       if (e.target instanceof HTMLInputElement) return;
 
       if (e.key === "ArrowDown") {
@@ -59,7 +100,7 @@ export default function ForgePage() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
+  }, [activeLightbox, activeLightboxWeek]);
 
   const handleCopyCode = (code: string) => {
     navigator.clipboard.writeText(code);
@@ -109,7 +150,7 @@ export default function ForgePage() {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search archive by title, topic, or keyword (e.g. '5S', 'INFJ', 'Orientation')..."
+            placeholder="Search archive by title, topic, or keyword (e.g. 'Arduino', 'Sensors', 'Cables', 'PCB Rework')..."
             className="w-full rounded-xl glass-panel-elevated py-3 pl-11 pr-4 text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-white transition-all border border-white/15"
           />
         </div>
@@ -240,9 +281,9 @@ export default function ForgePage() {
                         {/* Summary */}
                         <div className="space-y-1">
                           <span className="text-[10px] font-mono text-white uppercase tracking-wider font-bold">OVERVIEW</span>
-                          <p className="text-xs sm:text-sm text-neutral-300 leading-relaxed font-sans">
+                          <div className="text-xs sm:text-sm text-neutral-300 leading-relaxed font-sans space-y-3 whitespace-pre-line">
                             {week.summary}
-                          </p>
+                          </div>
                         </div>
 
                         {/* Objectives Checklist */}
@@ -277,6 +318,53 @@ export default function ForgePage() {
                                   <span>{act}</span>
                                 </div>
                               ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* GALLERY IMAGES */}
+                        {week.galleryImages && week.galleryImages.length > 0 && (
+                          <div className="space-y-3 pt-2">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[10px] font-mono text-white uppercase tracking-wider font-bold flex items-center gap-1.5">
+                                <ImageIcon className="h-3.5 w-3.5 text-white" />
+                                <span>PHOTO LOG & LAB GALLERY ({week.galleryImages.length} IMAGES)</span>
+                              </span>
+                              <span className="text-[10px] font-mono text-neutral-400">Click to expand</span>
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                              {week.galleryImages.map((imgItem, imgIdx) => {
+                                const url = typeof imgItem === "string" ? imgItem : imgItem.url;
+                                const caption = typeof imgItem === "string" ? `Week ${week.weekNumber} Photo ${imgIdx + 1}` : imgItem.caption;
+
+                                return (
+                                  <motion.div
+                                    key={imgIdx}
+                                    whileHover={{ scale: 1.02 }}
+                                    onClick={() => setActiveLightbox({ weekNumber: week.weekNumber, imageIndex: imgIdx })}
+                                    className="group relative cursor-pointer overflow-hidden rounded-xl glass-panel p-2 border border-white/15 hover:border-white/40 transition-all bg-black/60 shadow-md flex flex-col justify-between"
+                                  >
+                                    <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-neutral-950">
+                                      <img
+                                        src={url}
+                                        alt={caption}
+                                        loading="lazy"
+                                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                      />
+                                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white/20 backdrop-blur-md text-white border border-white/30">
+                                          <Maximize2 className="h-4 w-4" />
+                                        </div>
+                                      </div>
+                                    </div>
+                                    <div className="pt-2 px-1">
+                                      <p className="text-[11px] text-neutral-300 font-sans line-clamp-2 leading-snug group-hover:text-white transition-colors">
+                                        {caption}
+                                      </p>
+                                    </div>
+                                  </motion.div>
+                                );
+                              })}
                             </div>
                           </div>
                         )}
@@ -438,6 +526,55 @@ export default function ForgePage() {
           })
         )}
       </section>
+
+      {/* FULLSCREEN LIGHTBOX MODAL */}
+      <AnimatePresence>
+        {activeLightbox !== null && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-xl p-4 sm:p-8"
+          >
+            <button
+              onClick={() => setActiveLightbox(null)}
+              className="absolute top-6 right-6 z-50 flex h-10 w-10 items-center justify-center rounded-full glass-panel text-white hover:bg-white/20 transition-all border border-white/20"
+            >
+              <X className="h-5 w-5" />
+            </button>
+
+            <button
+              onClick={handlePrevLightboxImage}
+              className="absolute left-4 sm:left-8 top-1/2 -translate-y-1/2 z-50 flex h-11 w-11 items-center justify-center rounded-full glass-panel text-white hover:bg-white/20 transition-all border border-white/20"
+            >
+              <ChevronLeft className="h-6 w-6" />
+            </button>
+
+            <button
+              onClick={handleNextLightboxImage}
+              className="absolute right-4 sm:right-8 top-1/2 -translate-y-1/2 z-50 flex h-11 w-11 items-center justify-center rounded-full glass-panel text-white hover:bg-white/20 transition-all border border-white/20"
+            >
+              <ChevronRight className="h-6 w-6" />
+            </button>
+
+            <div className="max-w-4xl w-full space-y-4 text-center">
+              <div className="relative inline-block overflow-hidden rounded-2xl glass-panel-elevated p-3 border border-white/25 shadow-2xl max-h-[75vh]">
+                <img
+                  src={currentLightboxImageUrl}
+                  alt={currentLightboxCaption}
+                  className="max-h-[70vh] max-w-full object-contain rounded-xl mx-auto"
+                />
+              </div>
+              <div className="space-y-1 max-w-xl mx-auto">
+                <p className="text-sm font-semibold text-white">{currentLightboxCaption}</p>
+                <p className="text-xs font-mono text-neutral-400">
+                  Week {activeLightboxWeek?.weekNumber} • Image {activeLightbox.imageIndex + 1} of {activeLightboxWeek?.galleryImages?.length}
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
     </div>
   );

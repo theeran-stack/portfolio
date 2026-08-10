@@ -1,3 +1,8 @@
+export interface ForgeGalleryImage {
+  url: string;
+  caption: string;
+}
+
 export interface ForgeWeekItem {
   weekNumber: number;
   id: string;
@@ -20,7 +25,7 @@ export interface ForgeWeekItem {
   teamCredits?: { role: string; name: string }[];
   deliverables?: { title: string; type: string; link?: string }[];
   tags: string[];
-  galleryImages?: string[];
+  galleryImages?: (string | ForgeGalleryImage)[];
   codeSnippet?: { language: string; code: string; filename: string };
 }
 
@@ -72,62 +77,89 @@ export const forgeWeeksData: ForgeWeekItem[] = [
   {
     weekNumber: 1,
     id: "forge-w1",
-    title: "Week 1 — 5S Implementation",
-    subtitle: "Workplace Organization, Cable Management & Desoldering Works",
+    title: "Week 1 — ProtoSem Learning Summary",
+    subtitle: "Cables Team, Microcontrollers, Arduino Sensor Interfacing & PCB Desoldering Rework",
     dateRange: "Week 1",
-    category: "Workplace Organization",
+    category: "Embedded Systems & Hardware",
     status: "Completed",
-    teamName: "Cable Management Team / Desoldering Works",
-    role: "Cable Management & Desoldering Component Handling",
-    summary: "Week 1 introduced me to the practical implementation of the 5S Methodology, where I learned how workplace organization contributes to efficiency, safety, and productivity. I initially worked as a member of the Cable Management Team, where I was responsible for organizing and managing cables systematically to maintain a clean and efficient workspace. Later, I was assigned to Desoldering Works, where I carefully removed electronic components from circuit boards while following proper handling procedures.",
+    teamName: "Cables Team & Microcontrollers Team",
+    role: "Embedded Systems & Hardware Developer",
+    summary: "During the first week of my ProtoSem journey, I initially worked with the Cables team and completed the assigned activities. After completing the work in that area, I moved to the Microcontrollers team to gain practical exposure to embedded systems and electronic hardware.\n\nAlongside the assigned activities, I explored my own interests in microcontrollers and started learning Arduino-based development. I learned how to use an Arduino board and the Arduino software environment to interface and test different sensors. I experimented with components such as ultrasonic, smoke, and thermal sensors, and observed their working conditions through practical testing.\n\nI also gained hands-on experience in sensor interfacing, circuit connections, basic programming, testing, and troubleshooting. Towards the end of the week, I worked on desoldering previously soldered electronic boards, which helped me understand practical PCB handling and electronic rework techniques.\n\nOverall, Week 1 gave me a strong foundation in cabling, microcontrollers, Arduino, sensor interfacing, hardware testing, and PCB rework, while also encouraging me to learn and experiment beyond the assigned tasks.",
     objectives: [
-      "Understand the principles of the 5S Workplace Methodology.",
-      "Learn the importance of workplace organization and efficiency.",
-      "Improve teamwork and collaboration.",
-      "Develop practical experience in cable management and desoldering.",
-      "Maintain a clean, organized, and systematic workspace."
+      "Complete assigned activities with the Cables team.",
+      "Gain practical exposure to embedded systems and electronic hardware with the Microcontrollers team.",
+      "Learn Arduino board operation and the Arduino software environment.",
+      "Interface and test sensors including Ultrasonic, Smoke, and Thermal sensors.",
+      "Gain hands-on experience in circuit connections, basic programming, testing, and troubleshooting.",
+      "Perform desoldering on electronic boards for PCB handling and rework techniques."
     ],
     activitiesCompleted: [
-      "Participated in the 5S Implementation activity.",
-      "Worked as a member of the Cable Management Team.",
-      "Organized and managed cables following the 5S principles.",
-      "Assisted in maintaining a clean and systematic workspace.",
-      "Participated in Desoldering Works by safely removing electronic components from circuit boards.",
-      "Collaborated with teammates to complete assigned tasks efficiently."
+      "Worked with Cables team and completed assigned initial activities.",
+      "Transitioned to Microcontrollers team for embedded systems and hardware exposure.",
+      "Learned Arduino board usage and Arduino IDE development environment.",
+      "Interfaced and tested Ultrasonic, Smoke, and Thermal sensors with Arduino.",
+      "Observed sensor working conditions through live practical testing.",
+      "Executed circuit wiring, basic embedded programming, testing, and troubleshooting.",
+      "Desoldered previously soldered electronic boards for PCB handling and rework."
     ],
-    challengesFaced: "One of the key challenges was maintaining accuracy while organizing cables systematically and later performing desoldering without damaging electronic components. Managing both responsibilities within the given time required patience, precision, and effective coordination with my teammates.",
+    challengesFaced: "Transitioning between the Cables team and Microcontrollers team required rapid adaptation. Interfacing multiple sensors (ultrasonic, smoke, thermal) and verifying working conditions demanded structured circuit connections and careful Arduino IDE code testing. Desoldering component pins without damaging board pads required steady hands, precision thermal application, and patience.",
     skillsGained: [
-      "Teamwork",
-      "Communication",
-      "Workplace Organization",
-      "Cable Management",
-      "Desoldering Techniques",
-      "Attention to Detail",
-      "Responsibility",
-      "Time Management",
-      "Problem Solving"
+      "Arduino Development",
+      "Microcontrollers",
+      "Sensor Interfacing",
+      "Circuit Connections",
+      "PCB Desoldering & Rework",
+      "Hardware Testing & Troubleshooting",
+      "Cabling",
+      "Self-Directed Learning"
     ],
     conceptsLearned: [
-      "5S Workplace Methodology",
-      "Workplace Organization",
-      "Cable Management",
-      "Basic Electronic Component Handling",
-      "Desoldering Process",
-      "Team Collaboration"
+      "Arduino Board Architecture & IDE",
+      "Ultrasonic, Smoke & Thermal Sensors",
+      "Embedded Hardware Wiring & Signal Logic",
+      "Circuit Debugging & Fault Isolation",
+      "PCB Rework & Component Desoldering",
+      "Cross-Team Electronic Workflows"
     ],
-    keyLearnings: "This week helped me understand how the 5S Methodology improves workplace efficiency through proper organization and discipline. Working in both the Cable Management Team and Desoldering Works gave me practical exposure to organizing workspaces and handling electronic components with care. These experiences strengthened my teamwork, communication, adaptability, and attention to detail while reinforcing the importance of following systematic work practices.",
-    reflection: "Week 1 was a valuable learning experience that introduced me to practical workplace management and electronics handling. Working on cable management taught me the importance of maintaining an organized environment, while participating in desoldering improved my patience and precision when working with hardware. Overall, this week enhanced my teamwork, adaptability, and responsibility, giving me a stronger appreciation for organized workflows and practical engineering tasks.",
+    keyLearnings: "Gained hands-on experience in sensor interfacing, circuit connections, basic programming, testing, and troubleshooting. Working on desoldering previously soldered electronic boards provided deep insights into practical PCB handling and electronic rework techniques.",
+    reflection: "Overall, Week 1 gave me a strong foundation in cabling, microcontrollers, Arduino, sensor interfacing, hardware testing, and PCB rework, while also encouraging me to learn and experiment beyond the assigned tasks.",
     highlights: [
-      "Successfully participated in the 5S Implementation activity.",
-      "Worked as a member of the Cable Management Team.",
-      "Contributed to maintaining an organized workspace using the 5S Methodology.",
-      "Participated in Desoldering Works and gained practical experience in handling electronic components.",
-      "Improved teamwork, communication, adaptability, and attention to detail through hands-on activities."
+      "Completed initial assigned activities with Cables team & moved to Microcontrollers team.",
+      "Mastered Arduino board usage & software environment for sensor interfacing.",
+      "Interfaced & tested Ultrasonic, Smoke, and Thermal sensors with live hardware testing.",
+      "Gained hands-on experience in circuit connections, programming, and troubleshooting.",
+      "Desoldered electronic boards for practical PCB handling & rework techniques."
     ],
-    tags: ["5S Methodology", "Cable Management", "Desoldering", "Electronics", "Workplace Organization"],
+    galleryImages: [
+      {
+        url: "/img/week-1/IMG20260727113755.jpg.jpeg",
+        caption: "Cabling team activities & initial lab workspace setup"
+      },
+      {
+        url: "/img/week-1/IMG20260728123255_20260810161452.jpg.jpeg",
+        caption: "Microcontrollers team setup & Arduino board configuration"
+      },
+      {
+        url: "/img/week-1/IMG20260728160259_20260810161452.jpg.jpeg",
+        caption: "Ultrasonic, smoke, and thermal sensor interfacing & circuit wiring"
+      },
+      {
+        url: "/img/week-1/IMG20260729122235_20260810161452.jpg.jpeg",
+        caption: "Live sensor testing & observing working conditions in Arduino IDE"
+      },
+      {
+        url: "/img/week-1/IMG_20260810_105037.jpg.jpeg",
+        caption: "Desoldering components from electronic circuit boards"
+      },
+      {
+        url: "/img/week-1/IMG_20260810_105134.jpg.jpeg",
+        caption: "Practical PCB handling, component inspection & electronic rework"
+      }
+    ],
+    tags: ["Arduino", "Microcontrollers", "Sensors", "Cabling", "PCB Rework", "Desoldering", "Embedded Systems", "Hardware Testing"],
     teamCredits: [
-      { role: "Initial Team", name: "Cable Management Team" },
-      { role: "Additional Work", name: "Desoldering Works" }
+      { role: "Initial Assignment", name: "Cables Team" },
+      { role: "Primary Assignment", name: "Microcontrollers Team" }
     ]
   },
   ...Array.from({ length: 19 }, (_, i) => {
