@@ -162,8 +162,183 @@ export const forgeWeeksData: ForgeWeekItem[] = [
       { role: "Primary Assignment", name: "Microcontrollers Team" }
     ]
   },
-  ...Array.from({ length: 19 }, (_, i) => {
-    const weekNum = i + 2;
+  {
+    weekNumber: 2,
+    id: "forge-w2",
+    title: "Week 2 — Innovation, Programming & Mobile Application Development",
+    subtitle: "Lean Spark Innovation, Think Like a Coder Python, Scratch Dinosaur Game & MIT App Inventor Hostel Tracker",
+    dateRange: "Week 2",
+    category: "Innovation & App Development",
+    status: "Completed",
+    summary: "Week 2 focused on innovation, problem-solving, programming, game development, and mobile application development. The activities were practical and helped me improve my logical thinking and apply programming concepts to real-world problems.\n\nThe week started with an expert session by Mukesh, author of Lean Spark, where I learned about innovation, entrepreneurship, and converting ideas into practical solutions.\n\nI then followed the Think Like a Coder approach to analyze 5 problem statements, develop algorithms, and create flowcharts before coding. I also learned Python fundamentals and improved my computational thinking.\n\nIn Scratch, I developed a Dinosaur Shooting Game with scoring, a 5-life system, and game-over logic. This helped me understand programming logic and event-based development.\n\nI also developed a Hostel Complaint Tracker mobile application using MIT App Inventor with Firebase integration. The application digitizes the complaint process through the workflow: Student → Warden → Hostel Head → Maintenance Staff → Warden → Student. It included role-based dashboards, photo proof, staff assignment, progress tracking, and complaint reopening.\n\nThe week concluded with an Applied Design Thinking session by the Vice President of FORGE, which helped me understand how user needs and problems can be converted into practical solutions.",
+    objectives: [
+      "Understand innovation and entrepreneurship.",
+      "Apply computational thinking to problem-solving.",
+      "Learn Python fundamentals, algorithms, and flowcharts.",
+      "Develop a Scratch game using programming logic.",
+      "Build a mobile application using MIT App Inventor and Firebase.",
+      "Understand role-based workflows and Design Thinking."
+    ],
+    activitiesCompleted: [
+      "Attended the Lean Spark expert session by Mukesh (Author of Lean Spark).",
+      "Analyzed 5 problem statements using algorithms and flowcharts (Think Like a Coder).",
+      "Practiced Python fundamentals and computational thinking.",
+      "Developed a Dinosaur Shooting Game in Scratch with scoring, 5 lives, and game-over logic.",
+      "Developed the Hostel Complaint Tracker using MIT App Inventor.",
+      "Integrated Firebase for complaint data storage, real-time updates, and role routing.",
+      "Attended the Applied Design Thinking workshop by Vice President of FORGE."
+    ],
+    challengesFaced: "I faced challenges while converting problem statements into algorithms, implementing game logic in Scratch, designing the multi-role complaint workflow, and managing real-time data using Firebase.",
+    skillsGained: [
+      "Problem Analysis",
+      "Algorithm Design",
+      "Computational Thinking",
+      "Python Fundamentals",
+      "Game Development",
+      "Mobile Application Development",
+      "Firebase Integration",
+      "UI/UX Design",
+      "Design Thinking"
+    ],
+    conceptsLearned: [
+      "Lean Spark Innovation & Entrepreneurship",
+      "Think Like a Coder Methodology",
+      "Algorithm Development & Flowchart Design",
+      "Python Syntax & Logic Control",
+      "Scratch Event Blocks & Life Counter Systems",
+      "Multi-Role Workflow Systems (Student → Warden → Head → Staff)",
+      "Real-Time NoSQL Database Structuring in Firebase",
+      "User-Centric Design Thinking"
+    ],
+    keyLearnings: "The Hostel Complaint Tracker mobile application digitized a complex 6-step institutional workflow (Student → Warden → Hostel Head → Maintenance Staff → Warden → Student) using MIT App Inventor and Firebase. This demonstrated how real-time databases and role-based UI access solve real-world campus problems.",
+    reflection: "Overall, Week 2 improved my problem-solving, programming, application development, and design thinking skills. Combining high-level design thinking principles with hands-on coding in Python, Scratch, and App Inventor gave me confidence in building end-to-end user-centric applications.",
+    highlights: [
+      "Lean Spark session with Mukesh on converting ideas into practical solutions.",
+      "Think Like a Coder: 5 problem statements solved with algorithms & flowcharts.",
+      "Developed Scratch Dinosaur Shooting Game with score tracking and 5-life system.",
+      "Engineered MIT App Inventor Hostel Complaint Tracker digitized 6-step workflow with Firebase.",
+      "Applied Design Thinking workshop by Vice President of FORGE."
+    ],
+    galleryImages: [
+      {
+        url: "/img/week-2/MIT/User Dashboard.jpeg",
+        caption: "MIT App Inventor: Hostel Complaint Tracker — Student & User Dashboard Interface"
+      },
+      {
+        url: "/img/week-2/MIT/Location.png",
+        caption: "MIT App Inventor: Hostel Complaint Tracker — Location & Campus Room Mapping"
+      },
+      {
+        url: "/img/week-2/MIT/My Events.jpeg",
+        caption: "MIT App Inventor: Hostel Complaint Tracker — Complaint Tracking & Role Status Workflow"
+      },
+      {
+        url: "/img/week-2/MIT/Nodes.png",
+        caption: "Firebase Realtime Database: Complaint Nodes Architecture & Multi-Role Status Fields"
+      },
+      {
+        url: "/img/week-2/MIT/Konnecet Bot.jpeg",
+        caption: "MIT App Inventor: Visual Block Code & Assistant Bot Integration"
+      },
+      {
+        url: "/img/week-2/Python/Python learning.jpg",
+        caption: "Python Fundamentals & Think Like a Coder Algorithm & Flowchart Exercises"
+      }
+    ],
+    tags: ["MIT App Inventor", "Firebase", "Python", "Scratch", "Algorithms", "Flowcharts", "Design Thinking", "Lean Spark", "Mobile App"],
+    teamCredits: [
+      { role: "Mobile & Software Developer", name: "Theeran P." },
+      { role: "Expert Speaker", name: "Mukesh (Author of Lean Spark)" },
+      { role: "Workshop Mentor", name: "Vice President of FORGE" }
+    ]
+  },
+  {
+    weekNumber: 3,
+    id: "forge-w3",
+    title: "Week 3 — Electronics Fundamentals & 3D Product Design",
+    subtitle: "Electronics Fundamentals, Ohm's Law, Circuit Components & Autodesk Fusion 360 Parametric CAD Modelling",
+    dateRange: "Week 3",
+    category: "Electronics & 3D Design",
+    status: "Completed",
+    summary: "Week 3 focused on electronics fundamentals, CAD, 3D modelling, and product design. The sessions helped me understand basic electrical concepts and apply design concepts using Autodesk Fusion 360.\n\nI learned fundamentals such as voltage, current, resistance, Ohm’s Law (V = I × R), and electronic components including resistors, capacitors, and diodes.\n\nIn Fusion 360, I followed the workflow of Idea → 2D Sketch → Dimensions & Constraints → 3D Features → Final Model. I practiced creating accurate sketches and converting them into 3D models.\n\nI designed a mechanical component with a base plate, mounting holes, vertical sections, and cylindrical supports. I also created 3D models of a Microphone, Paper Rocket with fins, and Water Bottle, focusing on proportions, symmetry, and accuracy.",
+    objectives: [
+      "Understand basic electronics and Ohm’s Law (V = I × R).",
+      "Learn the functions of resistors, capacitors, and diodes.",
+      "Learn the Fusion 360 product design workflow (Idea → 2D Sketch → Dimensions & Constraints → 3D Features → Final Model).",
+      "Practice 2D parametric sketching with dimensions and constraints.",
+      "Create detailed mechanical and real-world 3D models.",
+      "Improve accuracy, spatial thinking, and product design skills."
+    ],
+    activitiesCompleted: [
+      "Studied basic electronics and circuit concepts.",
+      "Learned about resistors, capacitors, and diodes.",
+      "Practiced 2D parametric sketching in Autodesk Fusion 360.",
+      "Created a detailed mechanical component with mounting holes and supports.",
+      "Modeled a 3D Microphone, Paper Rocket with fins, and Water Bottle.",
+      "Focused on dimensions, proportions, symmetry, and design accuracy."
+    ],
+    challengesFaced: "I faced challenges in applying accurate dimensions and geometric constraints while creating sketches and converting reference designs into precise 3D models. Maintaining the correct proportions and symmetry of real-world products also required careful observation and repeated adjustments.",
+    skillsGained: [
+      "Basic Electronics",
+      "Circuit Fundamentals",
+      "Problem Solving",
+      "CAD Modelling",
+      "2D Sketching",
+      "3D Modelling",
+      "Geometric Constraints",
+      "Dimensioning",
+      "Product Design",
+      "Spatial Thinking",
+      "Attention to Detail",
+      "Design Iteration"
+    ],
+    conceptsLearned: [
+      "Voltage, Current, Resistance & Ohm's Law (V = I × R)",
+      "Resistors, Capacitors & Diode Characteristics",
+      "Fusion 360 Parametric CAD Workflow",
+      "2D Sketching, Dimensions & Geometric Constraints",
+      "Extrusions, Fillets & 3D Feature Operations",
+      "Mechanical Base Plate & Mounting Holes Design",
+      "Proportional & Symmetrical Real-World Product Modeling"
+    ],
+    keyLearnings: "Mastered the end-to-end CAD workflow (Idea → 2D Sketch → Dimensions & Constraints → 3D Features → Final Model) in Autodesk Fusion 360 while deepening my understanding of electronic circuit fundamentals and Ohm's Law.",
+    reflection: "Overall, Week 3 helped me strengthen my electronics knowledge, CAD modelling, 3D design, and product development skills.",
+    highlights: [
+      "Studied electronics circuit concepts, Ohm's Law (V = I × R), and passive/active components.",
+      "Mastered Autodesk Fusion 360 parametric 2D sketching & 3D feature creation.",
+      "Designed a custom mechanical component with base plate, mounting holes, and supports.",
+      "Created precise 3D models of a Microphone, Paper Rocket with fins, and Water Bottle."
+    ],
+    galleryImages: [
+      {
+        url: "/img/week-3/Electronics/DSC_9930.jpg",
+        caption: "Electronics Fundamentals: Studying Circuit Concepts, Ohm's Law & Component Functions"
+      },
+      {
+        url: "/img/week-3/Mecahnical/Base Sketch.png",
+        caption: "Autodesk Fusion 360: 2D Parametric Base Sketch with Dimensions & Geometric Constraints"
+      },
+      {
+        url: "/img/week-3/Mecahnical/Base Body.png",
+        caption: "Autodesk Fusion 360: Extruded 3D Mechanical Component Base Body"
+      },
+      {
+        url: "/img/week-3/Mecahnical/Home view body.png",
+        caption: "Autodesk Fusion 360: Mechanical Component 3D Home View with Mounting Holes & Supports"
+      },
+      {
+        url: "/img/week-3/Mecahnical/Home view Decay.png",
+        caption: "Autodesk Fusion 360: Mechanical Assembly Perspective & Component Render Projection"
+      }
+    ],
+    tags: ["Autodesk Fusion 360", "CAD & 3D Modelling", "2D Parametric Sketching", "Electronics Fundamentals", "Ohm’s Law", "Mechanical Design", "Product Design"],
+    teamCredits: [
+      { role: "CAD & Product Designer", name: "Theeran P." },
+      { role: "Domain Lead", name: "Protosem Design & Electronics Team" }
+    ]
+  },
+  ...Array.from({ length: 17 }, (_, i) => {
+    const weekNum = i + 4;
     return {
       weekNumber: weekNum,
       id: `forge-w${weekNum}`,

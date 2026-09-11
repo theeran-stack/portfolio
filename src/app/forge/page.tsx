@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { forgeWeeksData } from "@/content/forge";
+import { forgeWeeksData, ForgeWeekItem, ForgeGalleryImage } from "@/content/forge";
 import { 
   FolderGit2, 
   Search, 
@@ -25,19 +25,94 @@ import {
   Maximize2,
   X,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Edit3,
+  Plus,
+  Trash2,
+  Save,
+  Lock,
+  RotateCcw,
+  ShieldAlert
 } from "lucide-react";
 
 export default function ForgePage() {
+  const [weeks, setWeeks] = useState<ForgeWeekItem[]>(forgeWeeksData);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [expandedWeek, setExpandedWeek] = useState<number | null>(1); // Week 1 open by default
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [activeLightbox, setActiveLightbox] = useState<{ weekNumber: number; imageIndex: number } | null>(null);
 
+  // Week Editor Modal State
+  const [editingWeek, setEditingWeek] = useState<ForgeWeekItem | null>(null);
+  const [newImageUrl, setNewImageUrl] = useState("");
+  const [newImageCaption, setNewImageCaption] = useState("");
+  const [activeEditorTab, setActiveEditorTab] = useState<"general" | "lists" | "text" | "gallery">("general");
+
   const categories = ["All", "Completed", "In Progress"];
 
-  const filteredWeeks = forgeWeeksData.filter((w) => {
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      // Check Admin Auth state from secret contact password
+      const auth = localStorage.getItem("protosem_admin_authenticated");
+      if (auth === "true") {
+        setIsAdmin(true);
+      }
+
+      // Check Saved Custom Weeks Data
+      const saved = localStorage.getItem("protosem_custom_weeks_data");
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setWeeks(parsed);
+          }
+        } catch (e) {
+          console.error("Failed to parse custom weeks from localStorage", e);
+        }
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    if (editingWeek) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [editingWeek]);
+
+  const handleSaveWeekEdit = () => {
+    if (!editingWeek) return;
+    const updatedWeeks = weeks.map((w) => (w.weekNumber === editingWeek.weekNumber ? editingWeek : w));
+    setWeeks(updatedWeeks);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("protosem_custom_weeks_data", JSON.stringify(updatedWeeks));
+    }
+    setEditingWeek(null);
+  };
+
+  const handleLockAdmin = () => {
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("protosem_admin_authenticated");
+    }
+    setIsAdmin(false);
+  };
+
+  const handleResetWeeks = () => {
+    if (confirm("Are you sure you want to reset all week edits and restore defaults?")) {
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("protosem_custom_weeks_data");
+      }
+      setWeeks(forgeWeeksData);
+    }
+  };
+
+  const filteredWeeks = weeks.filter((w) => {
     const matchesSearch = 
       w.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       w.summary.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -49,7 +124,7 @@ export default function ForgePage() {
   });
 
   const activeLightboxWeek = activeLightbox !== null 
-    ? forgeWeeksData.find((w) => w.weekNumber === activeLightbox.weekNumber)
+    ? weeks.find((w) => w.weekNumber === activeLightbox.weekNumber)
     : null;
 
   const currentGalleryItem = activeLightboxWeek && activeLightboxWeek.galleryImages 
@@ -85,7 +160,7 @@ export default function ForgePage() {
         return;
       }
 
-      if (e.target instanceof HTMLInputElement) return;
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
 
       if (e.key === "ArrowDown") {
         e.preventDefault();
@@ -111,6 +186,38 @@ export default function ForgePage() {
   return (
     <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 space-y-10 py-6">
       
+      {/* ADMIN CONTROL BAR (Visible when unlocked via password on contact page) */}
+      {isAdmin && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="glass-panel-elevated rounded-2xl p-4 border border-emerald-500/40 bg-emerald-950/30 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs font-mono shadow-lg"
+        >
+          <div className="flex items-center gap-2 text-emerald-300 font-bold">
+            <span className="h-2.5 w-2.5 rounded-full bg-emerald-400 animate-pulse" />
+            <ShieldAlert className="h-4 w-4 text-emerald-400" />
+            <span>PROTOSEM ADMIN EDIT MODE ACTIVE</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleResetWeeks}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg glass-panel hover:bg-neutral-800 text-neutral-300 border border-white/10 transition-all"
+              title="Reset all custom week edits to default static data"
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+              <span>Reset Defaults</span>
+            </button>
+            <button
+              onClick={handleLockAdmin}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/30 font-bold transition-all"
+            >
+              <Lock className="h-3.5 w-3.5" />
+              <span>Lock Admin</span>
+            </button>
+          </div>
+        </motion.div>
+      )}
+
       {/* ARCHIVE HEADER */}
       <section className="space-y-4 text-center max-w-3xl mx-auto">
         <motion.div
@@ -150,7 +257,7 @@ export default function ForgePage() {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search archive by title, topic, or keyword (e.g. 'Arduino', 'Sensors', 'Cables', 'PCB Rework')..."
+            placeholder="Search archive by title, topic, or keyword (e.g. 'Arduino', 'Sensors', 'MIT App', 'Fusion 360')..."
             className="w-full rounded-xl glass-panel-elevated py-3 pl-11 pr-4 text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-white transition-all border border-white/15"
           />
         </div>
@@ -253,6 +360,25 @@ export default function ForgePage() {
                     </div>
 
                     <div className="flex items-center gap-3 self-end sm:self-center">
+                      {/* EDIT WEEK BUTTON (When Admin is Unlocked) */}
+                      {isAdmin && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditingWeek(JSON.parse(JSON.stringify(week)));
+                            setNewImageUrl("");
+                            setNewImageCaption("");
+                            setActiveEditorTab("general");
+                          }}
+                          className="flex items-center gap-1.5 rounded-full bg-emerald-500/20 px-3 py-1 text-xs font-mono font-bold text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/40 transition-all shadow-sm"
+                          title="Edit Week Content & Images"
+                        >
+                          <Edit3 className="h-3.5 w-3.5 text-emerald-300" />
+                          <span>Edit Week</span>
+                        </button>
+                      )}
+
                       <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-mono border ${
                         isCompleted
                           ? "bg-white/10 text-white border-white/20 font-semibold"
@@ -573,6 +699,478 @@ export default function ForgePage() {
               </div>
             </div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* WEEK EDITOR MODAL (INTERACTIVE CONTENT & GALLERY MANAGER) */}
+      <AnimatePresence>
+        {editingWeek && (
+          <div
+            data-lenis-prevent
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-xl overflow-y-auto"
+          >
+            <motion.div
+              data-lenis-prevent
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              className="relative w-full max-w-3xl rounded-3xl glass-panel-elevated p-6 sm:p-8 border border-white/20 shadow-2xl space-y-6 bg-neutral-900 my-auto max-h-[85vh] overflow-y-auto"
+            >
+              {/* Modal Header */}
+              <div className="flex items-center justify-between border-b border-white/10 pb-4">
+                <div className="flex items-center gap-2 text-white font-mono text-base font-bold">
+                  <Edit3 className="h-5 w-5 text-emerald-400" />
+                  <span>Edit Week {editingWeek.weekNumber} Content & Images</span>
+                </div>
+                <button
+                  onClick={() => setEditingWeek(null)}
+                  className="rounded-full p-1.5 text-neutral-400 hover:text-white hover:bg-neutral-800 transition-all"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              {/* Editor Tabs Navigation */}
+              <div className="flex flex-wrap gap-2 border-b border-white/10 pb-3 font-mono text-xs">
+                <button
+                  type="button"
+                  onClick={() => setActiveEditorTab("general")}
+                  className={`px-3 py-1.5 rounded-lg transition-all ${
+                    activeEditorTab === "general"
+                      ? "bg-white text-black font-bold"
+                      : "glass-panel text-neutral-400 hover:text-white"
+                  }`}
+                >
+                  General Info
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveEditorTab("lists")}
+                  className={`px-3 py-1.5 rounded-lg transition-all ${
+                    activeEditorTab === "lists"
+                      ? "bg-white text-black font-bold"
+                      : "glass-panel text-neutral-400 hover:text-white"
+                  }`}
+                >
+                  Objectives & Activities
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveEditorTab("text")}
+                  className={`px-3 py-1.5 rounded-lg transition-all ${
+                    activeEditorTab === "text"
+                      ? "bg-white text-black font-bold"
+                      : "glass-panel text-neutral-400 hover:text-white"
+                  }`}
+                >
+                  Detailed Descriptions
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveEditorTab("gallery")}
+                  className={`px-3 py-1.5 rounded-lg transition-all ${
+                    activeEditorTab === "gallery"
+                      ? "bg-white text-black font-bold"
+                      : "glass-panel text-neutral-400 hover:text-white"
+                  }`}
+                >
+                  Images Gallery ({editingWeek.galleryImages?.length || 0})
+                </button>
+              </div>
+
+              {/* TAB 1: GENERAL INFO */}
+              {activeEditorTab === "general" && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-mono text-white font-bold uppercase block">TITLE *</label>
+                      <input
+                        type="text"
+                        value={editingWeek.title}
+                        onChange={(e) => setEditingWeek({ ...editingWeek, title: e.target.value })}
+                        className="w-full rounded-xl glass-panel p-3 text-xs text-white border border-white/15 bg-black/40 focus:outline-none focus:border-white"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-mono text-white font-bold uppercase block">SUBTITLE</label>
+                      <input
+                        type="text"
+                        value={editingWeek.subtitle}
+                        onChange={(e) => setEditingWeek({ ...editingWeek, subtitle: e.target.value })}
+                        className="w-full rounded-xl glass-panel p-3 text-xs text-white border border-white/15 bg-black/40 focus:outline-none focus:border-white"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-mono text-white font-bold uppercase block">CATEGORY</label>
+                      <input
+                        type="text"
+                        value={editingWeek.category}
+                        onChange={(e) => setEditingWeek({ ...editingWeek, category: e.target.value })}
+                        className="w-full rounded-xl glass-panel p-3 text-xs text-white border border-white/15 bg-black/40 focus:outline-none focus:border-white"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-mono text-white font-bold uppercase block">STATUS</label>
+                      <select
+                        value={editingWeek.status}
+                        onChange={(e) => setEditingWeek({ ...editingWeek, status: e.target.value as "Completed" | "In Progress" })}
+                        className="w-full rounded-xl glass-panel p-3 text-xs text-white border border-white/15 bg-black/40 focus:outline-none focus:border-white"
+                      >
+                        <option value="Completed" className="bg-neutral-900 text-white">Completed</option>
+                        <option value="In Progress" className="bg-neutral-900 text-white">In Progress</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-mono text-white font-bold uppercase block">DATE RANGE</label>
+                      <input
+                        type="text"
+                        value={editingWeek.dateRange}
+                        onChange={(e) => setEditingWeek({ ...editingWeek, dateRange: e.target.value })}
+                        className="w-full rounded-xl glass-panel p-3 text-xs text-white border border-white/15 bg-black/40 focus:outline-none focus:border-white"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-mono text-white font-bold uppercase block">OVERVIEW / SUMMARY *</label>
+                    <textarea
+                      rows={6}
+                      value={editingWeek.summary}
+                      onChange={(e) => setEditingWeek({ ...editingWeek, summary: e.target.value })}
+                      className="w-full rounded-xl glass-panel p-3.5 text-xs text-white border border-white/15 bg-black/40 focus:outline-none focus:border-white leading-relaxed resize-y"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 2: OBJECTIVES & ACTIVITIES LISTS */}
+              {activeEditorTab === "lists" && (
+                <div className="space-y-6">
+                  {/* Objectives List */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[11px] font-mono text-white font-bold uppercase flex items-center gap-1.5">
+                        <Target className="h-3.5 w-3.5 text-white" />
+                        <span>OBJECTIVES ({editingWeek.objectives?.length || 0})</span>
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const currentObj = editingWeek.objectives || [];
+                          setEditingWeek({ ...editingWeek, objectives: [...currentObj, "New objective statement..."] });
+                        }}
+                        className="flex items-center gap-1 px-2.5 py-1 rounded bg-white/10 hover:bg-white/20 text-[10px] font-mono text-white border border-white/15"
+                      >
+                        <Plus className="h-3 w-3" />
+                        <span>Add Objective</span>
+                      </button>
+                    </div>
+                    <div data-lenis-prevent className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                      {(editingWeek.objectives || []).map((obj, idx) => (
+                        <div key={idx} className="flex items-center gap-2">
+                          <input
+                            type="text"
+                            value={obj}
+                            onChange={(e) => {
+                              const updated = [...(editingWeek.objectives || [])];
+                              updated[idx] = e.target.value;
+                              setEditingWeek({ ...editingWeek, objectives: updated });
+                            }}
+                            className="flex-1 rounded-xl glass-panel p-2.5 text-xs text-white border border-white/15 bg-black/40"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const updated = (editingWeek.objectives || []).filter((_, i) => i !== idx);
+                              setEditingWeek({ ...editingWeek, objectives: updated });
+                            }}
+                            className="p-2 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/30 shrink-0"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Activities Completed List */}
+                  <div className="space-y-2 pt-2 border-t border-white/10">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[11px] font-mono text-white font-bold uppercase flex items-center gap-1.5">
+                        <Sparkles className="h-3.5 w-3.5 text-white" />
+                        <span>ACTIVITIES COMPLETED ({editingWeek.activitiesCompleted?.length || 0})</span>
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const currentAct = editingWeek.activitiesCompleted || [];
+                          setEditingWeek({ ...editingWeek, activitiesCompleted: [...currentAct, "New activity completed..."] });
+                        }}
+                        className="flex items-center gap-1 px-2.5 py-1 rounded bg-white/10 hover:bg-white/20 text-[10px] font-mono text-white border border-white/15"
+                      >
+                        <Plus className="h-3 w-3" />
+                        <span>Add Activity</span>
+                      </button>
+                    </div>
+                    <div data-lenis-prevent className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                      {(editingWeek.activitiesCompleted || []).map((act, idx) => (
+                        <div key={idx} className="flex items-center gap-2">
+                          <input
+                            type="text"
+                            value={act}
+                            onChange={(e) => {
+                              const updated = [...(editingWeek.activitiesCompleted || [])];
+                              updated[idx] = e.target.value;
+                              setEditingWeek({ ...editingWeek, activitiesCompleted: updated });
+                            }}
+                            className="flex-1 rounded-xl glass-panel p-2.5 text-xs text-white border border-white/15 bg-black/40"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const updated = (editingWeek.activitiesCompleted || []).filter((_, i) => i !== idx);
+                              setEditingWeek({ ...editingWeek, activitiesCompleted: updated });
+                            }}
+                            className="p-2 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/30 shrink-0"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Skills Gained List */}
+                  <div className="space-y-2 pt-2 border-t border-white/10">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[11px] font-mono text-white font-bold uppercase flex items-center gap-1.5">
+                        <span>SKILLS GAINED ({editingWeek.skillsGained?.length || 0})</span>
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const currentSkills = editingWeek.skillsGained || [];
+                          setEditingWeek({ ...editingWeek, skillsGained: [...currentSkills, "New Skill"] });
+                        }}
+                        className="flex items-center gap-1 px-2.5 py-1 rounded bg-white/10 hover:bg-white/20 text-[10px] font-mono text-white border border-white/15"
+                      >
+                        <Plus className="h-3 w-3" />
+                        <span>Add Skill</span>
+                      </button>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {(editingWeek.skillsGained || []).map((skill, idx) => (
+                        <div key={idx} className="flex items-center gap-1 bg-white/10 rounded-lg p-1.5 border border-white/15 text-xs">
+                          <input
+                            type="text"
+                            value={skill}
+                            onChange={(e) => {
+                              const updated = [...(editingWeek.skillsGained || [])];
+                              updated[idx] = e.target.value;
+                              setEditingWeek({ ...editingWeek, skillsGained: updated });
+                            }}
+                            className="bg-transparent text-white font-mono text-xs w-28 focus:outline-none"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const updated = (editingWeek.skillsGained || []).filter((_, i) => i !== idx);
+                              setEditingWeek({ ...editingWeek, skillsGained: updated });
+                            }}
+                            className="text-red-400 hover:text-red-300 p-0.5"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 3: DETAILED DESCRIPTIONS */}
+              {activeEditorTab === "text" && (
+                <div className="space-y-4">
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-mono text-white font-bold uppercase flex items-center gap-1 text-amber-300">
+                      <AlertTriangle className="h-3.5 w-3.5" />
+                      <span>CHALLENGES FACED</span>
+                    </label>
+                    <textarea
+                      rows={3}
+                      value={editingWeek.challengesFaced || ""}
+                      onChange={(e) => setEditingWeek({ ...editingWeek, challengesFaced: e.target.value })}
+                      placeholder="Describe any challenges faced during this week..."
+                      className="w-full rounded-xl glass-panel p-3 text-xs text-white border border-white/15 bg-black/40 focus:outline-none focus:border-white resize-y"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-mono text-white font-bold uppercase flex items-center gap-1">
+                      <Lightbulb className="h-3.5 w-3.5 text-white" />
+                      <span>KEY LEARNINGS</span>
+                    </label>
+                    <textarea
+                      rows={3}
+                      value={editingWeek.keyLearnings || ""}
+                      onChange={(e) => setEditingWeek({ ...editingWeek, keyLearnings: e.target.value })}
+                      placeholder="Summarize key technical and personal learnings..."
+                      className="w-full rounded-xl glass-panel p-3 text-xs text-white border border-white/15 bg-black/40 focus:outline-none focus:border-white resize-y"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-mono text-white font-bold uppercase flex items-center gap-1">
+                      <Compass className="h-3.5 w-3.5 text-white" />
+                      <span>WEEK REFLECTION</span>
+                    </label>
+                    <textarea
+                      rows={3}
+                      value={editingWeek.reflection || ""}
+                      onChange={(e) => setEditingWeek({ ...editingWeek, reflection: e.target.value })}
+                      placeholder="Personal reflection on progress..."
+                      className="w-full rounded-xl glass-panel p-3 text-xs text-white border border-white/15 bg-black/40 focus:outline-none focus:border-white resize-y"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 4: IMAGES GALLERY MANAGER (Add, Edit, Delete Images) */}
+              {activeEditorTab === "gallery" && (
+                <div className="space-y-6">
+                  {/* Current Gallery Images List */}
+                  <div className="space-y-3">
+                    <label className="text-[11px] font-mono text-white font-bold uppercase flex items-center gap-1.5">
+                      <ImageIcon className="h-3.5 w-3.5 text-white" />
+                      <span>EXISTING GALLERY IMAGES ({editingWeek.galleryImages?.length || 0})</span>
+                    </label>
+
+                    {(!editingWeek.galleryImages || editingWeek.galleryImages.length === 0) ? (
+                      <p className="text-xs text-neutral-400 italic">No images currently in this week's gallery.</p>
+                    ) : (
+                      <div data-lenis-prevent className="space-y-3 max-h-72 overflow-y-auto pr-1">
+                        {editingWeek.galleryImages.map((imgItem, imgIdx) => {
+                          const url = typeof imgItem === "string" ? imgItem : imgItem.url;
+                          const caption = typeof imgItem === "string" ? "" : imgItem.caption;
+
+                          return (
+                            <div key={imgIdx} className="glass-panel p-3 rounded-xl border border-white/15 flex flex-col sm:flex-row items-center gap-3 bg-black/40">
+                              <div className="relative h-16 w-24 shrink-0 overflow-hidden rounded-lg bg-neutral-950 border border-white/10">
+                                <img src={url} alt={caption} className="h-full w-full object-cover" />
+                              </div>
+
+                              <div className="flex-1 space-y-1.5 w-full">
+                                <input
+                                  type="text"
+                                  value={url}
+                                  onChange={(e) => {
+                                    const updated = [...(editingWeek.galleryImages || [])];
+                                    updated[imgIdx] = { url: e.target.value, caption };
+                                    setEditingWeek({ ...editingWeek, galleryImages: updated });
+                                  }}
+                                  placeholder="Image URL..."
+                                  className="w-full rounded-lg glass-panel p-1.5 text-xs text-white border border-white/10 bg-black/50"
+                                />
+                                <input
+                                  type="text"
+                                  value={caption}
+                                  onChange={(e) => {
+                                    const updated = [...(editingWeek.galleryImages || [])];
+                                    updated[imgIdx] = { url, caption: e.target.value };
+                                    setEditingWeek({ ...editingWeek, galleryImages: updated });
+                                  }}
+                                  placeholder="Image Caption..."
+                                  className="w-full rounded-lg glass-panel p-1.5 text-xs text-neutral-300 border border-white/10 bg-black/50"
+                                />
+                              </div>
+
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const updated = (editingWeek.galleryImages || []).filter((_, i) => i !== imgIdx);
+                                  setEditingWeek({ ...editingWeek, galleryImages: updated });
+                                }}
+                                className="flex items-center gap-1 px-3 py-2 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/30 text-xs font-mono shrink-0"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                                <span>Delete Image</span>
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Add New Image Section */}
+                  <div className="pt-4 border-t border-white/10 space-y-3">
+                    <label className="text-[11px] font-mono text-emerald-300 font-bold uppercase flex items-center gap-1">
+                      <Plus className="h-3.5 w-3.5 text-emerald-400" />
+                      <span>ADD NEW IMAGE TO GALLERY</span>
+                    </label>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <input
+                        type="text"
+                        value={newImageUrl}
+                        onChange={(e) => setNewImageUrl(e.target.value)}
+                        placeholder="Image URL (e.g. /img/week-2/MIT/User Dashboard.jpeg)..."
+                        className="rounded-xl glass-panel p-2.5 text-xs text-white border border-white/15 bg-black/40 focus:outline-none focus:border-white"
+                      />
+                      <input
+                        type="text"
+                        value={newImageCaption}
+                        onChange={(e) => setNewImageCaption(e.target.value)}
+                        placeholder="Image Caption description..."
+                        className="rounded-xl glass-panel p-2.5 text-xs text-white border border-white/15 bg-black/40 focus:outline-none focus:border-white"
+                      />
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!newImageUrl.trim()) return;
+                        const currentGallery = editingWeek.galleryImages || [];
+                        const updated = [...currentGallery, { url: newImageUrl.trim(), caption: newImageCaption.trim() || `Week ${editingWeek.weekNumber} Image` }];
+                        setEditingWeek({ ...editingWeek, galleryImages: updated });
+                        setNewImageUrl("");
+                        setNewImageCaption("");
+                      }}
+                      className="flex items-center gap-1.5 rounded-full bg-emerald-500/20 px-4 py-2 text-xs font-mono font-bold text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/30 transition-all"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      <span>Add Image to Gallery</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Modal Footer Actions */}
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-white/10">
+                <button
+                  type="button"
+                  onClick={() => setEditingWeek(null)}
+                  className="rounded-full glass-panel px-5 py-2.5 text-xs font-mono text-neutral-400 hover:text-white border border-white/10"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveWeekEdit}
+                  className="flex items-center gap-2 rounded-full bg-white px-6 py-2.5 text-xs font-mono font-bold text-black hover:bg-neutral-200 transition-all shadow-md"
+                >
+                  <Save className="h-4 w-4 text-black" />
+                  <span>Save Changes</span>
+                </button>
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
 

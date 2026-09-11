@@ -1,15 +1,47 @@
 "use client";
 
-import { useState } from "react";
-import { motion } from "framer-motion";
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { motion, AnimatePresence } from "framer-motion";
 import { contactData } from "@/content/contact";
-import { Send, CheckCircle2, Mail, MapPin, Clock, FileText, ArrowUpRight, Github, Linkedin, Instagram, Sparkles } from "lucide-react";
+import { 
+  Send, 
+  CheckCircle2, 
+  Mail, 
+  MapPin, 
+  Clock, 
+  FileText, 
+  ArrowUpRight, 
+  Github, 
+  Linkedin, 
+  Instagram, 
+  Lock, 
+  X, 
+  AlertTriangle, 
+  ArrowRight 
+} from "lucide-react";
 
 const smoothEase = [0.16, 1, 0.3, 1];
 
 export default function ContactPage() {
   const [formSubmitted, setFormSubmitted] = useState(false);
   const [formData, setFormData] = useState({ name: "", email: "", subject: "", message: "" });
+  
+  // Secret Admin Edit Unlock State
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [passwordInput, setPasswordInput] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authSuccessMsg, setAuthSuccessMsg] = useState("");
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const auth = localStorage.getItem("protosem_admin_authenticated");
+      if (auth === "true") {
+        setIsAuthenticated(true);
+      }
+    }
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -217,6 +249,141 @@ export default function ContactPage() {
 
       </section>
 
+      {/* FOOTER PART WITH SECRET "right" BUTTON */}
+      <footer className="pt-12 pb-6 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-mono text-neutral-400">
+        <div>
+          <span>© {new Date().getFullYear()} Theeran P. All rights reserved.</span>
+        </div>
+
+        <div className="flex items-center gap-4">
+          <button
+            type="button"
+            onClick={() => {
+              setShowPasswordModal(true);
+              setPasswordError("");
+              setPasswordInput("");
+              setAuthSuccessMsg("");
+            }}
+            className="px-3 py-1.5 rounded-lg glass-panel hover:bg-neutral-800 text-neutral-400 hover:text-white border border-white/10 transition-all text-xs font-mono"
+            title="Secret Admin Access"
+          >
+            right
+          </button>
+        </div>
+      </footer>
+
+      {/* PASSWORD PROMPT MODAL */}
+      <AnimatePresence>
+        {showPasswordModal && (
+          <div data-lenis-prevent className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+            <motion.div
+              data-lenis-prevent
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="relative w-full max-w-md rounded-2xl glass-panel-elevated p-6 border border-white/20 shadow-2xl space-y-5 bg-neutral-900"
+            >
+              <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                <div className="flex items-center gap-2 text-white font-mono text-sm font-bold">
+                  <Lock className="h-4 w-4 text-white" />
+                  <span>ProtoSem Admin Edit Unlock</span>
+                </div>
+                <button
+                  onClick={() => setShowPasswordModal(false)}
+                  className="rounded-full p-1 text-neutral-400 hover:text-white hover:bg-neutral-800"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              {authSuccessMsg ? (
+                <div className="space-y-4 py-2 text-center">
+                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">
+                    <CheckCircle2 className="h-6 w-6" />
+                  </div>
+                  <p className="text-xs font-mono text-emerald-300 font-bold">{authSuccessMsg}</p>
+                  <p className="text-xs text-neutral-300">
+                    The Edit options are now revealed on the ProtoSem section!
+                  </p>
+                  <div className="pt-2 flex gap-3 justify-center">
+                    <Link
+                      href="/forge"
+                      className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-2 text-xs font-mono font-bold text-black hover:bg-neutral-200 transition-all"
+                    >
+                      <span>Go to ProtoSem Section</span>
+                      <ArrowRight className="h-3.5 w-3.5" />
+                    </Link>
+                    <button
+                      onClick={() => setShowPasswordModal(false)}
+                      className="rounded-full glass-panel px-4 py-2 text-xs font-mono text-neutral-300 border border-white/15 hover:bg-neutral-800"
+                    >
+                      Close
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    if (passwordInput === "1611919") {
+                      localStorage.setItem("protosem_admin_authenticated", "true");
+                      setIsAuthenticated(true);
+                      setAuthSuccessMsg("Password Correct! ProtoSem Admin Edit Mode Enabled.");
+                      setPasswordError("");
+                    } else {
+                      setPasswordError("Incorrect Password. Please try again.");
+                    }
+                  }}
+                  className="space-y-4"
+                >
+                  <p className="text-xs text-neutral-300 font-sans">
+                    Enter the admin authorization password to unlock the interactive editing options for all weeks in the ProtoSem section.
+                  </p>
+
+                  <div className="space-y-2">
+                    <label className="text-[11px] font-mono text-neutral-300 uppercase font-bold block">
+                      ADMIN PASSWORD *
+                    </label>
+                    <input
+                      type="password"
+                      autoFocus
+                      required
+                      value={passwordInput}
+                      onChange={(e) => setPasswordInput(e.target.value)}
+                      placeholder="Enter password..."
+                      className="w-full rounded-xl glass-panel p-3 text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-white border border-white/20 bg-black/50"
+                    />
+                    {passwordError && (
+                      <p className="text-[11px] font-mono text-red-400 flex items-center gap-1">
+                        <AlertTriangle className="h-3 w-3" />
+                        <span>{passwordError}</span>
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="flex justify-end gap-3 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowPasswordModal(false)}
+                      className="rounded-full glass-panel px-4 py-2 text-xs font-mono text-neutral-400 hover:text-white border border-white/10"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="rounded-full bg-white px-5 py-2 text-xs font-mono font-bold text-black hover:bg-neutral-200 transition-all"
+                    >
+                      Submit & Unlock
+                    </button>
+                  </div>
+                </form>
+              )}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
     </div>
   );
 }
+
