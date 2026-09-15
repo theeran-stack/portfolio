@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { forgeWeeksData, ForgeWeekItem, ForgeGalleryImage } from "@/content/forge";
 import { 
@@ -32,8 +32,86 @@ import {
   Save,
   Lock,
   RotateCcw,
-  ShieldAlert
+  ShieldAlert,
+  Upload,
+  UploadCloud,
+  ImagePlus,
+  Loader2,
+  RefreshCw,
+  FileUp
 } from "lucide-react";
+
+/**
+ * Client-side utility to read an image file from the local disk/system
+ * and compress it using HTML5 Canvas before producing a Data URL.
+ * Prevents localStorage quota overflow (~5MB) while keeping crisp visual quality.
+ */
+function compressAndReadImage(file: File, maxWidth = 1200, maxHeight = 1200, quality = 0.85): Promise<string> {
+  return new Promise((resolve, reject) => {
+    if (!file.type.startsWith("image/")) {
+      reject(new Error("Selected file is not a valid image format. Please select a PNG, JPG, WebP or GIF."));
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("Failed to read image file from disk."));
+    reader.onload = (e) => {
+      const rawDataUrl = e.target?.result as string;
+      if (!rawDataUrl) {
+        reject(new Error("Image content is empty."));
+        return;
+      }
+
+      const img = new Image();
+      img.onerror = () => reject(new Error("Failed to decode image data."));
+      img.onload = () => {
+        let width = img.width;
+        let height = img.height;
+
+        if (width > maxWidth || height > maxHeight) {
+          if (width > height) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          } else {
+            width = Math.round((width * maxHeight) / height);
+            height = maxHeight;
+          }
+        }
+
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+
+        if (!ctx) {
+          resolve(rawDataUrl);
+          return;
+        }
+
+        ctx.drawImage(img, 0, 0, width, height);
+
+        try {
+          const webpDataUrl = canvas.toDataURL("image/webp", quality);
+          if (webpDataUrl && webpDataUrl.startsWith("data:image/webp")) {
+            resolve(webpDataUrl);
+            return;
+          }
+        } catch {
+          // ignore webp fallback
+        }
+
+        try {
+          const jpegDataUrl = canvas.toDataURL("image/jpeg", quality);
+          resolve(jpegDataUrl);
+        } catch {
+          resolve(rawDataUrl);
+        }
+      };
+      img.src = rawDataUrl;
+    };
+    reader.readAsDataURL(file);
+  });
+}
 
 export default function ForgePage() {
   const [weeks, setWeeks] = useState<ForgeWeekItem[]>(forgeWeeksData);
@@ -49,6 +127,15 @@ export default function ForgePage() {
   const [newImageUrl, setNewImageUrl] = useState("");
   const [newImageCaption, setNewImageCaption] = useState("");
   const [activeEditorTab, setActiveEditorTab] = useState<"general" | "lists" | "text" | "gallery">("general");
+
+  // System Image File Upload States
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [targetReplaceIdx, setTargetReplaceIdx] = useState<number | null>(null);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const replaceFileInputRef = useRef<HTMLInputElement>(null);
 
   const categories = ["All", "Completed", "In Progress"];
 
@@ -94,6 +181,63 @@ export default function ForgePage() {
       localStorage.setItem("protosem_custom_weeks_data", JSON.stringify(updatedWeeks));
     }
     setEditingWeek(null);
+  };
+
+  const handleSystemFileUpload = async (file: File, replaceIdx?: number | null) => {
+    if (!file) return;
+    setIsUploading(true);
+    setUploadError(null);
+
+    try {
+      const compressedDataUrl = await compressAndReadImage(file);
+      if (!editingWeek) return;
+
+      if (replaceIdx !== undefined && replaceIdx !== null) {
+        const updated = [...(editingWeek.galleryImages || [])];
+        const existingItem = updated[replaceIdx];
+        const existingCaption = typeof existingItem === "string" ? "" : existingItem.caption;
+        updated[replaceIdx] = { 
+          url: compressedDataUrl, 
+          caption: existingCaption || file.name.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " ") || `Week ${editingWeek.weekNumber} Photo` 
+        };
+        setEditingWeek({ ...editingWeek, galleryImages: updated });
+      } else {
+        setNewImageUrl(compressedDataUrl);
+        if (!newImageCaption) {
+          const autoCaption = file.name.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " ");
+          setNewImageCaption(autoCaption || `Week ${editingWeek.weekNumber} Photo`);
+        }
+      }
+    } catch (err: any) {
+      console.error("Image upload error:", err);
+      setUploadError(err?.message || "Failed to process image file from system.");
+    } finally {
+      setIsUploading(false);
+      setTargetReplaceIdx(null);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      const file = e.dataTransfer.files[0];
+      handleSystemFileUpload(file);
+    }
   };
 
   const handleLockAdmin = () => {
@@ -1041,9 +1185,81 @@ export default function ForgePage() {
                 </div>
               )}
 
-              {/* TAB 4: IMAGES GALLERY MANAGER (Add, Edit, Delete Images) */}
+              {/* TAB 4: IMAGES GALLERY MANAGER (Add, Edit, Delete & Upload Images from System) */}
               {activeEditorTab === "gallery" && (
                 <div className="space-y-6">
+                  {/* Hidden File Inputs for System File Dialog */}
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files[0]) {
+                        handleSystemFileUpload(e.target.files[0]);
+                        e.target.value = "";
+                      }
+                    }}
+                  />
+                  <input
+                    type="file"
+                    ref={replaceFileInputRef}
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files[0] && targetReplaceIdx !== null) {
+                        handleSystemFileUpload(e.target.files[0], targetReplaceIdx);
+                        e.target.value = "";
+                      }
+                    }}
+                  />
+
+                  {/* Upload Error Alert */}
+                  {uploadError && (
+                    <div className="rounded-xl border border-red-500/40 bg-red-950/40 p-3 text-xs text-red-300 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <AlertTriangle className="h-4 w-4 text-red-400 shrink-0" />
+                        <span>{uploadError}</span>
+                      </div>
+                      <button onClick={() => setUploadError(null)} className="text-red-400 hover:text-white">
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Processing / Uploading Indicator */}
+                  {isUploading && (
+                    <div className="rounded-xl border border-emerald-500/40 bg-emerald-950/40 p-3 text-xs text-emerald-300 flex items-center gap-2 font-mono animate-pulse">
+                      <Loader2 className="h-4 w-4 animate-spin text-emerald-400" />
+                      <span>Reading and compressing image file from system...</span>
+                    </div>
+                  )}
+
+                  {/* Drag and Drop Zone for Local Files */}
+                  <div
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                    onClick={() => fileInputRef.current?.click()}
+                    className={`cursor-pointer rounded-2xl border-2 border-dashed p-6 text-center transition-all flex flex-col items-center justify-center gap-2 ${
+                      isDragging
+                        ? "border-emerald-400 bg-emerald-500/10 scale-[1.01]"
+                        : "border-white/20 bg-black/30 hover:border-emerald-500/50 hover:bg-neutral-900/60"
+                    }`}
+                  >
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                      <UploadCloud className="h-6 w-6" />
+                    </div>
+                    <div className="space-y-0.5">
+                      <p className="text-xs font-semibold text-white">
+                        Click to Choose File or Drag & Drop Image from System
+                      </p>
+                      <p className="text-[11px] text-neutral-400 font-mono">
+                        Supports PNG, JPG, WebP, GIF • Automatic client-side canvas optimization
+                      </p>
+                    </div>
+                  </div>
+
                   {/* Current Gallery Images List */}
                   <div className="space-y-3">
                     <label className="text-[11px] font-mono text-white font-bold uppercase flex items-center gap-1.5">
@@ -1061,22 +1277,24 @@ export default function ForgePage() {
 
                           return (
                             <div key={imgIdx} className="glass-panel p-3 rounded-xl border border-white/15 flex flex-col sm:flex-row items-center gap-3 bg-black/40">
-                              <div className="relative h-16 w-24 shrink-0 overflow-hidden rounded-lg bg-neutral-950 border border-white/10">
+                              <div className="relative h-16 w-24 shrink-0 overflow-hidden rounded-lg bg-neutral-950 border border-white/10 group">
                                 <img src={url} alt={caption} className="h-full w-full object-cover" />
                               </div>
 
                               <div className="flex-1 space-y-1.5 w-full">
-                                <input
-                                  type="text"
-                                  value={url}
-                                  onChange={(e) => {
-                                    const updated = [...(editingWeek.galleryImages || [])];
-                                    updated[imgIdx] = { url: e.target.value, caption };
-                                    setEditingWeek({ ...editingWeek, galleryImages: updated });
-                                  }}
-                                  placeholder="Image URL..."
-                                  className="w-full rounded-lg glass-panel p-1.5 text-xs text-white border border-white/10 bg-black/50"
-                                />
+                                <div className="flex items-center gap-2">
+                                  <input
+                                    type="text"
+                                    value={url}
+                                    onChange={(e) => {
+                                      const updated = [...(editingWeek.galleryImages || [])];
+                                      updated[imgIdx] = { url: e.target.value, caption };
+                                      setEditingWeek({ ...editingWeek, galleryImages: updated });
+                                    }}
+                                    placeholder="Image URL or Base64 Data URL..."
+                                    className="w-full rounded-lg glass-panel p-1.5 text-xs text-white border border-white/10 bg-black/50 font-mono"
+                                  />
+                                </div>
                                 <input
                                   type="text"
                                   value={caption}
@@ -1090,17 +1308,31 @@ export default function ForgePage() {
                                 />
                               </div>
 
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const updated = (editingWeek.galleryImages || []).filter((_, i) => i !== imgIdx);
-                                  setEditingWeek({ ...editingWeek, galleryImages: updated });
-                                }}
-                                className="flex items-center gap-1 px-3 py-2 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/30 text-xs font-mono shrink-0"
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                                <span>Delete Image</span>
-                              </button>
+                              <div className="flex sm:flex-col gap-2 shrink-0">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setTargetReplaceIdx(imgIdx);
+                                    replaceFileInputRef.current?.click();
+                                  }}
+                                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 text-xs font-mono"
+                                  title="Replace this image with a file from your computer"
+                                >
+                                  <RefreshCw className="h-3.5 w-3.5" />
+                                  <span>Replace</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const updated = (editingWeek.galleryImages || []).filter((_, i) => i !== imgIdx);
+                                    setEditingWeek({ ...editingWeek, galleryImages: updated });
+                                  }}
+                                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/30 text-xs font-mono"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                  <span>Delete</span>
+                                </button>
+                              </div>
                             </div>
                           );
                         })}
@@ -1110,18 +1342,29 @@ export default function ForgePage() {
 
                   {/* Add New Image Section */}
                   <div className="pt-4 border-t border-white/10 space-y-3">
-                    <label className="text-[11px] font-mono text-emerald-300 font-bold uppercase flex items-center gap-1">
-                      <Plus className="h-3.5 w-3.5 text-emerald-400" />
-                      <span>ADD NEW IMAGE TO GALLERY</span>
-                    </label>
+                    <div className="flex items-center justify-between">
+                      <label className="text-[11px] font-mono text-emerald-300 font-bold uppercase flex items-center gap-1">
+                        <Plus className="h-3.5 w-3.5 text-emerald-400" />
+                        <span>ADD NEW IMAGE TO GALLERY</span>
+                      </label>
+
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="flex items-center gap-1.5 rounded-lg bg-white/10 px-3 py-1 text-xs font-mono text-white border border-white/20 hover:bg-white/20 transition-all"
+                      >
+                        <Upload className="h-3.5 w-3.5 text-emerald-400" />
+                        <span>Upload from System</span>
+                      </button>
+                    </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <input
                         type="text"
                         value={newImageUrl}
                         onChange={(e) => setNewImageUrl(e.target.value)}
-                        placeholder="Image URL (e.g. /img/week-2/MIT/User Dashboard.jpeg)..."
-                        className="rounded-xl glass-panel p-2.5 text-xs text-white border border-white/15 bg-black/40 focus:outline-none focus:border-white"
+                        placeholder="Image URL or upload from system above..."
+                        className="rounded-xl glass-panel p-2.5 text-xs text-white border border-white/15 bg-black/40 focus:outline-none focus:border-white font-mono"
                       />
                       <input
                         type="text"
@@ -1132,21 +1375,37 @@ export default function ForgePage() {
                       />
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (!newImageUrl.trim()) return;
-                        const currentGallery = editingWeek.galleryImages || [];
-                        const updated = [...currentGallery, { url: newImageUrl.trim(), caption: newImageCaption.trim() || `Week ${editingWeek.weekNumber} Image` }];
-                        setEditingWeek({ ...editingWeek, galleryImages: updated });
-                        setNewImageUrl("");
-                        setNewImageCaption("");
-                      }}
-                      className="flex items-center gap-1.5 rounded-full bg-emerald-500/20 px-4 py-2 text-xs font-mono font-bold text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/30 transition-all"
-                    >
-                      <Plus className="h-3.5 w-3.5" />
-                      <span>Add Image to Gallery</span>
-                    </button>
+                    {/* Preview of newly uploaded or typed image */}
+                    {newImageUrl && (
+                      <div className="flex items-center gap-3 p-3 rounded-xl glass-panel border border-emerald-500/30 bg-emerald-950/20">
+                        <div className="h-14 w-20 shrink-0 overflow-hidden rounded-lg bg-black border border-white/15">
+                          <img src={newImageUrl} alt="Preview" className="h-full w-full object-cover" />
+                        </div>
+                        <div className="flex-1 text-xs text-neutral-300 truncate">
+                          <p className="font-semibold text-white truncate">{newImageCaption || "Untitled Image"}</p>
+                          <p className="text-[10px] font-mono text-emerald-400">Ready to add to gallery</p>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!newImageUrl.trim()) return;
+                          const currentGallery = editingWeek.galleryImages || [];
+                          const updated = [...currentGallery, { url: newImageUrl.trim(), caption: newImageCaption.trim() || `Week ${editingWeek.weekNumber} Image` }];
+                          setEditingWeek({ ...editingWeek, galleryImages: updated });
+                          setNewImageUrl("");
+                          setNewImageCaption("");
+                        }}
+                        disabled={!newImageUrl.trim()}
+                        className="flex items-center gap-1.5 rounded-full bg-emerald-500/20 px-4 py-2 text-xs font-mono font-bold text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/30 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                        <span>Add Image to Gallery</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}
