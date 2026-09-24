@@ -65,8 +65,109 @@ function isVideoUrl(url: string, itemType?: string): boolean {
 }
 
 /**
+ * IndexedDB storage engine for large media (video base64 Data URLs & images).
+ * Prevents 5MB localStorage QuotaExceededError crashes.
+ */
+const DB_NAME = "ProtoSemDB";
+const STORE_NAME = "custom_weeks";
+const DB_VERSION = 1;
+
+function getIDB(): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    if (typeof window === "undefined" || !window.indexedDB) {
+      reject(new Error("IndexedDB is not available in this browser environment."));
+      return;
+    }
+    const req = window.indexedDB.open(DB_NAME, DB_VERSION);
+    req.onerror = () => reject(req.error);
+    req.onsuccess = () => resolve(req.result);
+    req.onupgradeneeded = (e) => {
+      const db = (e.target as IDBOpenDBRequest).result;
+      if (!db.objectStoreNames.contains(STORE_NAME)) {
+        db.createObjectStore(STORE_NAME);
+      }
+    };
+  });
+}
+
+async function saveCustomWeeksToDB(weeks: ForgeWeekItem[]): Promise<void> {
+  try {
+    const db = await getIDB();
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, "readwrite");
+      const store = tx.objectStore(STORE_NAME);
+      const req = store.put(weeks, "protosem_custom_weeks_data");
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(req.error);
+    });
+  } catch (err) {
+    console.warn("IndexedDB save warning:", err);
+  }
+
+  // Sync to localStorage if small enough
+  if (typeof window !== "undefined") {
+    try {
+      localStorage.setItem("protosem_custom_weeks_data", JSON.stringify(weeks));
+    } catch (e) {
+      console.warn("localStorage quota limit reached. Media saved securely in IndexedDB:", e);
+    }
+  }
+}
+
+async function loadCustomWeeksFromDB(): Promise<ForgeWeekItem[] | null> {
+  try {
+    const db = await getIDB();
+    const data = await new Promise<ForgeWeekItem[] | null>((resolve) => {
+      const tx = db.transaction(STORE_NAME, "readonly");
+      const store = tx.objectStore(STORE_NAME);
+      const req = store.get("protosem_custom_weeks_data");
+      req.onsuccess = () => resolve(req.result || null);
+      req.onerror = () => resolve(null);
+    });
+    if (data && Array.isArray(data) && data.length > 0) {
+      return data;
+    }
+  } catch {
+    // Fallback to localStorage below
+  }
+
+  if (typeof window !== "undefined") {
+    try {
+      const saved = localStorage.getItem("protosem_custom_weeks_data");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }
+  return null;
+}
+
+async function clearCustomWeeksFromDB(): Promise<void> {
+  try {
+    const db = await getIDB();
+    const tx = db.transaction(STORE_NAME, "readwrite");
+    const store = tx.objectStore(STORE_NAME);
+    store.delete("protosem_custom_weeks_data");
+  } catch {
+    // ignore
+  }
+  if (typeof window !== "undefined") {
+    try {
+      localStorage.removeItem("protosem_custom_weeks_data");
+    } catch {
+      // ignore
+    }
+  }
+}
+
+/**
  * Utility to read a video file from disk as a Data URL.
- * Includes client-side size check to prevent localStorage quota errors.
+ * Includes client-side size check.
  */
 function readVideoFile(file: File): Promise<{ url: string; type: "video" }> {
   return new Promise((resolve, reject) => {
@@ -74,9 +175,9 @@ function readVideoFile(file: File): Promise<{ url: string; type: "video" }> {
       reject(new Error("Selected file is not a valid video format. Please select an MP4, WebM, OGG or MOV file."));
       return;
     }
-    const MAX_VIDEO_SIZE = 15 * 1024 * 1024; // 15MB
+    const MAX_VIDEO_SIZE = 50 * 1024 * 1024; // 50MB
     if (file.size > MAX_VIDEO_SIZE) {
-      reject(new Error(`Video file size (${(file.size / (1024 * 1024)).toFixed(1)}MB) exceeds 15MB. Please upload a smaller video file to save in local storage.`));
+      reject(new Error(`Video file size (${(file.size / (1024 * 1024)).toFixed(1)}MB) exceeds 50MB. Please select a smaller video file.`));
       return;
     }
 
@@ -97,7 +198,6 @@ function readVideoFile(file: File): Promise<{ url: string; type: "video" }> {
 /**
  * Client-side utility to read an image file from the local disk/system
  * and compress it using HTML5 Canvas before producing a Data URL.
- * Prevents localStorage quota overflow (~5MB) while keeping crisp visual quality.
  */
 function compressAndReadImage(file: File, maxWidth = 1200, maxHeight = 1200, quality = 0.85): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -185,6 +285,8 @@ export default function ForgePage() {
   // System Image File Upload States
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [targetReplaceIdx, setTargetReplaceIdx] = useState<number | null>(null);
 
@@ -201,18 +303,19 @@ export default function ForgePage() {
         setIsAdmin(true);
       }
 
-      // Check Saved Custom Weeks Data
-      const saved = localStorage.getItem("protosem_custom_weeks_data");
-      if (saved) {
+      // Check Saved Custom Weeks Data from IndexedDB + localStorage
+      const loadData = async () => {
         try {
-          const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            setWeeks(parsed);
+          const savedWeeks = await loadCustomWeeksFromDB();
+          if (savedWeeks && savedWeeks.length > 0) {
+            setWeeks(savedWeeks);
           }
         } catch (e) {
-          console.error("Failed to parse custom weeks from localStorage", e);
+          console.error("Failed to load custom weeks from storage", e);
         }
-      }
+      };
+
+      loadData();
     }
   }, []);
 
@@ -227,14 +330,44 @@ export default function ForgePage() {
     };
   }, [editingWeek]);
 
-  const handleSaveWeekEdit = () => {
+  const handleSaveWeekEdit = async () => {
     if (!editingWeek) return;
-    const updatedWeeks = weeks.map((w) => (w.weekNumber === editingWeek.weekNumber ? editingWeek : w));
-    setWeeks(updatedWeeks);
-    if (typeof window !== "undefined") {
-      localStorage.setItem("protosem_custom_weeks_data", JSON.stringify(updatedWeeks));
+    setIsSaving(true);
+    setSaveError(null);
+
+    try {
+      let finalEditingWeek = { ...editingWeek };
+
+      // Auto-stage any unsaved URL entered in newImageUrl field
+      if (newImageUrl.trim()) {
+        const isVid = isVideoUrl(newImageUrl.trim(), newMediaType);
+        const mediaKind: "video" | "image" = isVid ? "video" : "image";
+        const currentGallery = finalEditingWeek.galleryImages || [];
+        finalEditingWeek.galleryImages = [
+          ...currentGallery,
+          {
+            url: newImageUrl.trim(),
+            caption: newImageCaption.trim() || `Week ${finalEditingWeek.weekNumber} ${isVid ? "Video" : "Media"}`,
+            type: mediaKind
+          }
+        ];
+      }
+
+      const updatedWeeks = weeks.map((w) => (w.weekNumber === finalEditingWeek.weekNumber ? finalEditingWeek : w));
+
+      // Persist data in IndexedDB & localStorage
+      await saveCustomWeeksToDB(updatedWeeks);
+
+      setWeeks(updatedWeeks);
+      setEditingWeek(null);
+      setNewImageUrl("");
+      setNewImageCaption("");
+    } catch (err: any) {
+      console.error("Failed to save week changes:", err);
+      setSaveError(err?.message || "Failed to save week changes. Storage space limit exceeded.");
+    } finally {
+      setIsSaving(false);
     }
-    setEditingWeek(null);
   };
 
   const handleSystemFileUpload = async (file: File, replaceIdx?: number | null) => {
@@ -273,11 +406,16 @@ export default function ForgePage() {
         };
         setEditingWeek({ ...editingWeek, galleryImages: updated });
       } else {
-        setNewImageUrl(resultUrl);
-        setNewMediaType(mediaType);
-        if (!newImageCaption) {
-          setNewImageCaption(defaultCaption);
-        }
+        // Automatically add the uploaded video/image into editingWeek.galleryImages immediately!
+        const updated = [...(editingWeek.galleryImages || [])];
+        updated.push({
+          url: resultUrl,
+          caption: defaultCaption,
+          type: mediaType
+        });
+        setEditingWeek({ ...editingWeek, galleryImages: updated });
+        setNewImageUrl("");
+        setNewImageCaption("");
       }
     } catch (err: any) {
       console.error("Media upload error:", err);
@@ -318,11 +456,9 @@ export default function ForgePage() {
     setIsAdmin(false);
   };
 
-  const handleResetWeeks = () => {
+  const handleResetWeeks = async () => {
     if (confirm("Are you sure you want to reset all week edits and restore defaults?")) {
-      if (typeof window !== "undefined") {
-        localStorage.removeItem("protosem_custom_weeks_data");
-      }
+      await clearCustomWeeksFromDB();
       setWeeks(forgeWeeksData);
     }
   };
@@ -1553,22 +1689,46 @@ export default function ForgePage() {
                 </div>
               )}
 
+              {/* Save Error Alert */}
+              {saveError && (
+                <div className="rounded-xl border border-red-500/40 bg-red-950/40 p-3 text-xs text-red-300 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4 text-red-400 shrink-0" />
+                    <span>{saveError}</span>
+                  </div>
+                  <button onClick={() => setSaveError(null)} className="text-red-400 hover:text-white">
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              )}
+
               {/* Modal Footer Actions */}
               <div className="flex items-center justify-end gap-3 pt-4 border-t border-white/10">
                 <button
                   type="button"
+                  disabled={isSaving}
                   onClick={() => setEditingWeek(null)}
-                  className="rounded-full glass-panel px-5 py-2.5 text-xs font-mono text-neutral-400 hover:text-white border border-white/10"
+                  className="rounded-full glass-panel px-5 py-2.5 text-xs font-mono text-neutral-400 hover:text-white border border-white/10 disabled:opacity-50"
                 >
                   Cancel
                 </button>
                 <button
                   type="button"
+                  disabled={isSaving}
                   onClick={handleSaveWeekEdit}
-                  className="flex items-center gap-2 rounded-full bg-white px-6 py-2.5 text-xs font-mono font-bold text-black hover:bg-neutral-200 transition-all shadow-md"
+                  className="flex items-center gap-2 rounded-full bg-white px-6 py-2.5 text-xs font-mono font-bold text-black hover:bg-neutral-200 transition-all shadow-md disabled:opacity-50"
                 >
-                  <Save className="h-4 w-4 text-black" />
-                  <span>Save Changes</span>
+                  {isSaving ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin text-black" />
+                      <span>Saving...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Save className="h-4 w-4 text-black" />
+                      <span>Save Changes</span>
+                    </>
+                  )}
                 </button>
               </div>
             </motion.div>
