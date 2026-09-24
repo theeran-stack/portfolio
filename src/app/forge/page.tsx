@@ -41,7 +41,13 @@ import {
   FileUp,
   Video,
   Play,
-  Film
+  Film,
+  Cpu,
+  Layers,
+  Settings,
+  ExternalLink,
+  ShieldCheck,
+  Wrench
 } from "lucide-react";
 
 /**
@@ -755,180 +761,335 @@ export default function ForgePage() {
                         transition={{ duration: 0.25 }}
                         className="border-t border-white/10 p-5 sm:p-6 space-y-6 bg-black/40"
                       >
-                        {/* Summary */}
-                        <div className="space-y-1">
-                          <span className="text-[10px] font-mono text-white uppercase tracking-wider font-bold">OVERVIEW</span>
-                          <div className="text-xs sm:text-sm text-neutral-300 leading-relaxed font-sans space-y-3 whitespace-pre-line">
+                        {/* SECTION 1: OVERVIEW */}
+                        <div className="space-y-1.5 glass-panel p-4 rounded-xl border border-white/10">
+                          <span className="text-[10px] font-mono text-emerald-400 uppercase tracking-wider font-bold flex items-center gap-1.5">
+                            <BookOpen className="h-3.5 w-3.5 text-emerald-400" />
+                            <span>1. OVERVIEW</span>
+                          </span>
+                          <p className="text-xs sm:text-sm text-neutral-300 leading-relaxed font-sans whitespace-pre-line">
                             {week.summary}
-                          </div>
+                          </p>
                         </div>
 
-                        {/* Objectives Checklist */}
-                        {week.objectives && week.objectives.length > 0 && (
-                          <div className="space-y-2">
-                            <span className="text-[10px] font-mono text-white uppercase tracking-wider font-bold flex items-center gap-1">
-                              <Target className="h-3.5 w-3.5 text-white" />
-                              <span>OBJECTIVES</span>
+                        {/* SECTION 2: CONCEPTS */}
+                        {week.conceptsLearned && week.conceptsLearned.length > 0 && (
+                          <div className="space-y-2 glass-panel p-4 rounded-xl border border-white/10">
+                            <span className="text-[10px] font-mono text-amber-300 uppercase tracking-wider font-bold flex items-center gap-1.5">
+                              <Lightbulb className="h-3.5 w-3.5 text-amber-400" />
+                              <span>2. CONCEPTS</span>
                             </span>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                              {week.objectives.map((obj, idx) => (
-                                <div key={idx} className="flex items-start gap-2 glass-panel p-2.5 rounded-lg border border-white/10 text-xs text-neutral-300">
-                                  <Check className="h-3.5 w-3.5 text-white shrink-0 mt-0.5" />
-                                  <span>{obj}</span>
-                                </div>
+                            <div className="flex flex-wrap gap-1.5">
+                              {week.conceptsLearned.map((concept, idx) => (
+                                <span key={idx} className="rounded-lg bg-amber-500/10 px-2.5 py-1 text-xs font-mono text-amber-200 border border-amber-500/20">
+                                  {concept}
+                                </span>
                               ))}
                             </div>
                           </div>
                         )}
 
-                        {/* Activities Completed */}
-                        {week.activitiesCompleted && week.activitiesCompleted.length > 0 && (
-                          <div className="space-y-2">
-                            <span className="text-[10px] font-mono text-white uppercase tracking-wider font-bold flex items-center gap-1">
-                              <Sparkles className="h-3.5 w-3.5 text-white" />
-                              <span>ACTIVITIES COMPLETED</span>
+                        {/* SECTION 3: SYSTEM DESIGN */}
+                        {week.systemDesign && (
+                          <div className="space-y-3 glass-panel p-4 rounded-xl border border-white/10">
+                            <span className="text-[10px] font-mono text-cyan-400 uppercase tracking-wider font-bold flex items-center gap-1.5">
+                              <Layers className="h-3.5 w-3.5 text-cyan-400" />
+                              <span>3. SYSTEM DESIGN</span>
                             </span>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                              {week.activitiesCompleted.map((act, idx) => (
-                                <div key={idx} className="flex items-start gap-2 glass-panel p-2.5 rounded-lg border border-white/10 text-xs text-neutral-300">
-                                  <span className="h-1.5 w-1.5 rounded-full bg-white mt-1.5 shrink-0" />
-                                  <span>{act}</span>
-                                </div>
-                              ))}
+                            <pre className="rounded-xl bg-black/90 p-4 overflow-x-auto text-[11px] font-mono text-cyan-300 border border-cyan-500/20 leading-tight">
+                              <code>{week.systemDesign.diagram}</code>
+                            </pre>
+                            <p className="text-xs text-neutral-300 leading-relaxed font-sans">
+                              {week.systemDesign.explanation}
+                            </p>
+                          </div>
+                        )}
+
+                        {/* SECTION 4: HARDWARE & SOFTWARE TABLE */}
+                        {week.hardwareSoftware && week.hardwareSoftware.length > 0 && (
+                          <div className="space-y-3 glass-panel p-4 rounded-xl border border-white/10">
+                            <span className="text-[10px] font-mono text-purple-400 uppercase tracking-wider font-bold flex items-center gap-1.5">
+                              <Cpu className="h-3.5 w-3.5 text-purple-400" />
+                              <span>4. HARDWARE & SOFTWARE</span>
+                            </span>
+                            <div className="overflow-x-auto rounded-xl border border-white/10">
+                              <table className="w-full text-left text-xs font-sans">
+                                <thead className="bg-white/10 font-mono text-[10px] text-white uppercase">
+                                  <tr>
+                                    <th className="p-2.5">Component / Tool</th>
+                                    <th className="p-2.5">Type</th>
+                                    <th className="p-2.5">Purpose & Role</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-white/10 text-neutral-300 bg-black/30">
+                                  {week.hardwareSoftware.map((item, idx) => (
+                                    <tr key={idx} className="hover:bg-white/5 transition-colors">
+                                      <td className="p-2.5 font-semibold text-white font-mono">{item.name}</td>
+                                      <td className="p-2.5 font-mono">
+                                        <span className="rounded bg-white/10 px-2 py-0.5 text-[9px] text-purple-300 border border-purple-500/30">
+                                          {item.type}
+                                        </span>
+                                      </td>
+                                      <td className="p-2.5 text-neutral-300">{item.purpose}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
                             </div>
                           </div>
                         )}
 
-                        {/* MEDIA & VIDEO GALLERY */}
-                        {week.galleryImages && week.galleryImages.length > 0 && (
-                          <div className="space-y-3 pt-2">
+                        {/* SECTION 5: WIRING / SETUP */}
+                        {week.wiringSetup && (
+                          <div className="space-y-3 glass-panel p-4 rounded-xl border border-white/10">
+                            <span className="text-[10px] font-mono text-emerald-400 uppercase tracking-wider font-bold flex items-center gap-1.5">
+                              <Wrench className="h-3.5 w-3.5 text-emerald-400" />
+                              <span>5. WIRING / SETUP</span>
+                            </span>
+                            <p className="text-xs text-neutral-300 leading-relaxed font-sans">
+                              {week.wiringSetup.description}
+                            </p>
+                            {week.wiringSetup.diagram && (
+                              <pre className="rounded-xl bg-black/90 p-4 overflow-x-auto text-[11px] font-mono text-emerald-300 border border-emerald-500/20 leading-tight">
+                                <code>{week.wiringSetup.diagram}</code>
+                              </pre>
+                            )}
+                            {week.wiringSetup.image && (
+                              <div className="relative aspect-video max-h-72 w-full overflow-hidden rounded-xl border border-white/15 bg-black">
+                                <img src={week.wiringSetup.image} alt="Hardware Wiring Setup" className="h-full w-full object-cover" />
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* SECTION 6: IMPLEMENTATION */}
+                        {(week.implementationDetails || week.codeSnippet) && (
+                          <div className="space-y-3 glass-panel p-4 rounded-xl border border-white/10">
+                            <span className="text-[10px] font-mono text-blue-400 uppercase tracking-wider font-bold flex items-center gap-1.5">
+                              <Code className="h-3.5 w-3.5 text-blue-400" />
+                              <span>6. IMPLEMENTATION</span>
+                            </span>
+                            {week.implementationDetails && (
+                              <p className="text-xs text-neutral-300 leading-relaxed font-sans">
+                                {week.implementationDetails}
+                              </p>
+                            )}
+                            {week.codeSnippet && (
+                              <div className="space-y-2 pt-1">
+                                <div className="flex items-center justify-between text-[10px] font-mono">
+                                  <span className="text-blue-300 uppercase flex items-center gap-1 font-bold">
+                                    <Code className="h-3.5 w-3.5" />
+                                    <span>{week.codeSnippet.filename}</span>
+                                  </span>
+                                  <button
+                                    onClick={() => handleCopyCode(week.codeSnippet!.code)}
+                                    className="flex items-center gap-1 rounded bg-neutral-900 px-2 py-0.5 text-neutral-300 hover:text-white transition-colors border border-white/15"
+                                  >
+                                    {copiedCode === week.codeSnippet.code ? (
+                                      <>
+                                        <Check className="h-3 w-3 text-white" />
+                                        <span className="text-white">Copied</span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Copy className="h-3 w-3" />
+                                        <span>Copy Code</span>
+                                      </>
+                                    )}
+                                  </button>
+                                </div>
+                                <pre className="rounded-xl bg-black p-3.5 overflow-x-auto text-[11px] font-mono text-neutral-300 border border-white/15">
+                                  <code>{week.codeSnippet.code}</code>
+                                </pre>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* SECTION 7: CONFIGURATION */}
+                        {week.configurationDetails && (
+                          <div className="space-y-2 glass-panel p-4 rounded-xl border border-white/10">
+                            <span className="text-[10px] font-mono text-teal-400 uppercase tracking-wider font-bold flex items-center gap-1.5">
+                              <Settings className="h-3.5 w-3.5 text-teal-400" />
+                              <span>7. CONFIGURATION</span>
+                            </span>
+                            <p className="text-xs text-neutral-300 leading-relaxed font-sans">
+                              {week.configurationDetails}
+                            </p>
+                          </div>
+                        )}
+
+                        {/* SECTION 8: EVIDENCE */}
+                        {((week.evidenceList && week.evidenceList.length > 0) || (week.galleryImages && week.galleryImages.length > 0)) && (
+                          <div className="space-y-4 pt-2">
                             <div className="flex items-center justify-between">
-                              <span className="text-[10px] font-mono text-white uppercase tracking-wider font-bold flex items-center gap-1.5">
-                                <ImageIcon className="h-3.5 w-3.5 text-white" />
-                                <span>MEDIA & VIDEO GALLERY ({week.galleryImages.length} ITEMS)</span>
+                              <span className="text-[10px] font-mono text-emerald-300 uppercase tracking-wider font-bold flex items-center gap-1.5">
+                                <ImageIcon className="h-3.5 w-3.5 text-emerald-400" />
+                                <span>8. EVIDENCE ({week.evidenceList?.length || week.galleryImages?.length || 0} ITEMS)</span>
                               </span>
                               <span className="text-[10px] font-mono text-neutral-400">Click to expand</span>
                             </div>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                              {week.galleryImages.map((imgItem, imgIdx) => {
-                                const url = typeof imgItem === "string" ? imgItem : imgItem.url;
-                                const caption = typeof imgItem === "string" ? `Week ${week.weekNumber} Media ${imgIdx + 1}` : imgItem.caption;
-                                const itemType = typeof imgItem === "string" ? undefined : imgItem.type;
-                                const isVid = isVideoUrl(url, itemType);
 
-                                return (
-                                  <motion.div
-                                    key={imgIdx}
-                                    whileHover={{ scale: 1.02 }}
-                                    onClick={() => setActiveLightbox({ weekNumber: week.weekNumber, imageIndex: imgIdx })}
-                                    className="group relative cursor-pointer overflow-hidden rounded-xl glass-panel p-2 border border-white/15 hover:border-white/40 transition-all bg-black/60 shadow-md flex flex-col justify-between"
-                                  >
-                                    <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-neutral-950">
-                                      {isVid ? (
-                                        <video
-                                          src={url}
-                                          muted
-                                          playsInline
-                                          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                                        />
-                                      ) : (
-                                        <img
-                                          src={url}
-                                          alt={caption}
-                                          loading="lazy"
-                                          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                                        />
-                                      )}
-                                      {isVid && (
-                                        <div className="absolute top-2 right-2 px-2 py-0.5 rounded-md bg-black/70 backdrop-blur-md text-[9px] font-mono font-bold text-amber-300 border border-amber-500/40 flex items-center gap-1 z-10">
-                                          <Video className="h-3 w-3" />
-                                          <span>VIDEO</span>
-                                        </div>
-                                      )}
-                                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/20 backdrop-blur-md text-white border border-white/30 shadow-lg">
-                                          {isVid ? <Play className="h-5 w-5 fill-white text-white ml-0.5" /> : <Maximize2 className="h-4 w-4" />}
+                            {/* Detailed Evidence Cards */}
+                            {week.evidenceList && week.evidenceList.length > 0 ? (
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {week.evidenceList.map((ev, evIdx) => {
+                                  const isVid = isVideoUrl(ev.mediaUrl, ev.type);
+                                  return (
+                                    <div key={evIdx} className="glass-panel p-3.5 rounded-xl border border-white/15 bg-black/60 space-y-2.5 flex flex-col justify-between">
+                                      <div className="space-y-1">
+                                        <h4 className="text-xs font-bold text-white font-serif flex items-center gap-1.5">
+                                          {isVid ? <Film className="h-3.5 w-3.5 text-amber-400 shrink-0" /> : <ImageIcon className="h-3.5 w-3.5 text-emerald-400 shrink-0" />}
+                                          <span>{ev.title}</span>
+                                        </h4>
+                                        <p className="text-[11px] text-neutral-300 font-sans leading-relaxed">
+                                          {ev.explanation}
+                                        </p>
+                                      </div>
+
+                                      <div
+                                        onClick={() => {
+                                          const gIdx = (week.galleryImages || []).findIndex(
+                                            (g) => (typeof g === "string" ? g : g.url) === ev.mediaUrl
+                                          );
+                                          setActiveLightbox({ weekNumber: week.weekNumber, imageIndex: gIdx >= 0 ? gIdx : 0 });
+                                        }}
+                                        className="relative aspect-video w-full overflow-hidden rounded-lg bg-neutral-950 cursor-pointer group border border-white/10"
+                                      >
+                                        {isVid ? (
+                                          <video src={ev.mediaUrl} muted playsInline className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                                        ) : (
+                                          <img src={ev.mediaUrl} alt={ev.title} loading="lazy" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                                        )}
+                                        {isVid && (
+                                          <div className="absolute top-2 right-2 px-2 py-0.5 rounded-md bg-black/70 backdrop-blur-md text-[9px] font-mono font-bold text-amber-300 border border-amber-500/40 flex items-center gap-1 z-10">
+                                            <Video className="h-3 w-3" />
+                                            <span>VIDEO</span>
+                                          </div>
+                                        )}
+                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/20 backdrop-blur-md text-white border border-white/30 shadow-lg">
+                                            {isVid ? <Play className="h-5 w-5 fill-white text-white ml-0.5" /> : <Maximize2 className="h-4 w-4" />}
+                                          </div>
                                         </div>
                                       </div>
                                     </div>
-                                    <div className="pt-2 px-1 flex items-center justify-between gap-1">
-                                      <p className="text-[11px] text-neutral-300 font-sans line-clamp-2 leading-snug group-hover:text-white transition-colors">
-                                        {caption}
-                                      </p>
-                                      {isVid && <Film className="h-3.5 w-3.5 text-amber-400 shrink-0" />}
-                                    </div>
-                                  </motion.div>
-                                );
-                              })}
-                            </div>
+                                  );
+                                })}
+                              </div>
+                            ) : (
+                              /* Standard Gallery Grid */
+                              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                                {week.galleryImages?.map((imgItem, imgIdx) => {
+                                  const url = typeof imgItem === "string" ? imgItem : imgItem.url;
+                                  const caption = typeof imgItem === "string" ? `Week ${week.weekNumber} Media ${imgIdx + 1}` : imgItem.caption;
+                                  const itemType = typeof imgItem === "string" ? undefined : imgItem.type;
+                                  const isVid = isVideoUrl(url, itemType);
+
+                                  return (
+                                    <motion.div
+                                      key={imgIdx}
+                                      whileHover={{ scale: 1.02 }}
+                                      onClick={() => setActiveLightbox({ weekNumber: week.weekNumber, imageIndex: imgIdx })}
+                                      className="group relative cursor-pointer overflow-hidden rounded-xl glass-panel p-2 border border-white/15 hover:border-white/40 transition-all bg-black/60 shadow-md flex flex-col justify-between"
+                                    >
+                                      <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-neutral-950">
+                                        {isVid ? (
+                                          <video src={url} muted playsInline className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                                        ) : (
+                                          <img src={url} alt={caption} loading="lazy" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                                        )}
+                                        {isVid && (
+                                          <div className="absolute top-2 right-2 px-2 py-0.5 rounded-md bg-black/70 backdrop-blur-md text-[9px] font-mono font-bold text-amber-300 border border-amber-500/40 flex items-center gap-1 z-10">
+                                            <Video className="h-3 w-3" />
+                                            <span>VIDEO</span>
+                                          </div>
+                                        )}
+                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/20 backdrop-blur-md text-white border border-white/30 shadow-lg">
+                                            {isVid ? <Play className="h-5 w-5 fill-white text-white ml-0.5" /> : <Maximize2 className="h-4 w-4" />}
+                                          </div>
+                                        </div>
+                                      </div>
+                                      <div className="pt-2 px-1 flex items-center justify-between gap-1">
+                                        <p className="text-[11px] text-neutral-300 font-sans line-clamp-2 leading-snug group-hover:text-white transition-colors">
+                                          {caption}
+                                        </p>
+                                        {isVid && <Film className="h-3.5 w-3.5 text-amber-400 shrink-0" />}
+                                      </div>
+                                    </motion.div>
+                                  );
+                                })}
+                              </div>
+                            )}
                           </div>
                         )}
 
-                        {/* Challenges Faced */}
-                        {week.challengesFaced && (
-                          <div className="space-y-2 rounded-xl bg-amber-950/20 p-4 border border-amber-500/20">
+                        {/* SECTION 9: CHALLENGES & FIXES */}
+                        {(week.challengesFixesList || week.challengesFaced) && (
+                          <div className="space-y-3 rounded-xl bg-amber-950/20 p-4 border border-amber-500/20">
                             <span className="text-[10px] font-mono text-amber-300 uppercase tracking-wider font-bold flex items-center gap-1">
                               <AlertTriangle className="h-3.5 w-3.5 text-amber-400" />
-                              <span>CHALLENGES FACED</span>
+                              <span>9. CHALLENGES & FIXES</span>
                             </span>
-                            <p className="text-xs text-neutral-300 leading-relaxed font-sans">
-                              {week.challengesFaced}
-                            </p>
+
+                            {week.challengesFixesList && week.challengesFixesList.length > 0 ? (
+                              <div className="space-y-3">
+                                {week.challengesFixesList.map((cf, idx) => (
+                                  <div key={idx} className="space-y-1 glass-panel p-3 rounded-lg border border-amber-500/30 bg-black/40 text-xs">
+                                    <p className="font-semibold text-amber-300 font-sans">
+                                      <span className="font-mono uppercase text-[10px] text-amber-400 font-bold">Challenge: </span>
+                                      {cf.challenge}
+                                    </p>
+                                    <p className="text-neutral-300 font-sans">
+                                      <span className="font-mono uppercase text-[10px] text-emerald-400 font-bold">Fix: </span>
+                                      {cf.fix}
+                                    </p>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <p className="text-xs text-neutral-300 leading-relaxed font-sans">
+                                {week.challengesFaced}
+                              </p>
+                            )}
                           </div>
                         )}
 
-                        {/* Skills & Concepts Learned */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          {week.skillsGained && (
-                            <div className="space-y-2 glass-panel p-3.5 rounded-xl border border-white/10">
-                              <span className="text-[10px] font-mono text-white uppercase tracking-wider block font-bold">SKILLS DEVELOPED</span>
-                              <div className="flex flex-wrap gap-1">
-                                {week.skillsGained.map((skill) => (
-                                  <span key={skill} className="rounded bg-white/10 px-2 py-0.5 text-[10px] font-mono text-neutral-200 border border-white/15">
-                                    {skill}
-                                  </span>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-
-                          {week.conceptsLearned && (
-                            <div className="space-y-2 glass-panel p-3.5 rounded-xl border border-white/10">
-                              <span className="text-[10px] font-mono text-white uppercase tracking-wider block font-bold">CONCEPTS LEARNED</span>
-                              <div className="flex flex-wrap gap-1">
-                                {week.conceptsLearned.map((concept) => (
-                                  <span key={concept} className="rounded bg-white/10 px-2 py-0.5 text-[10px] font-mono text-neutral-200 border border-white/15">
-                                    {concept}
-                                  </span>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Key Learnings */}
-                        {week.keyLearnings && (
-                          <div className="space-y-2 rounded-xl bg-neutral-900/80 p-4 border border-white/15">
-                            <span className="text-[10px] font-mono text-white uppercase tracking-wider font-bold flex items-center gap-1">
-                              <Lightbulb className="h-3.5 w-3.5 text-white" />
-                              <span>KEY LEARNINGS</span>
-                            </span>
-                            <p className="text-xs text-neutral-300 leading-relaxed font-sans">
-                              {week.keyLearnings}
-                            </p>
-                          </div>
-                        )}
-
-                        {/* Reflection */}
+                        {/* SECTION 10: REFLECTION */}
                         {week.reflection && (
                           <div className="space-y-2 rounded-xl bg-neutral-900 p-4 border border-white/20">
                             <span className="text-[10px] font-mono text-white uppercase tracking-wider font-bold flex items-center gap-1">
                               <Compass className="h-3.5 w-3.5 text-white" />
-                              <span>WEEK REFLECTION</span>
+                              <span>10. REFLECTION</span>
                             </span>
                             <p className="text-xs text-neutral-200 italic leading-relaxed font-serif">
                               "{week.reflection}"
                             </p>
+                          </div>
+                        )}
+
+                        {/* SECTION 11: REPOSITORY LINK */}
+                        {week.repoLink && (
+                          <div className="space-y-2 glass-panel p-4 rounded-xl border border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3">
+                            <div className="space-y-0.5">
+                              <span className="text-[10px] font-mono text-emerald-400 uppercase tracking-wider font-bold flex items-center gap-1">
+                                <FolderGit2 className="h-3.5 w-3.5 text-emerald-400" />
+                                <span>11. REPOSITORY LINK</span>
+                              </span>
+                              <p className="text-xs text-neutral-300 font-sans">
+                                Verified source code repository for this assignment.
+                              </p>
+                            </div>
+                            <a
+                              href={week.repoLink}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-xs font-mono font-bold text-black hover:bg-neutral-200 transition-all shrink-0"
+                            >
+                              <span>View Code Repository</span>
+                              <ExternalLink className="h-3.5 w-3.5" />
+                            </a>
                           </div>
                         )}
 

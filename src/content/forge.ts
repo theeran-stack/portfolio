@@ -4,6 +4,24 @@ export interface ForgeGalleryImage {
   type?: "image" | "video";
 }
 
+export interface ForgeHardwareSoftwareItem {
+  name: string;
+  type: "Hardware" | "Software" | "Tool" | "Protocol";
+  purpose: string;
+}
+
+export interface ForgeEvidenceItem {
+  title: string;
+  explanation: string;
+  mediaUrl: string;
+  type?: "image" | "video";
+}
+
+export interface ForgeChallengeFixItem {
+  challenge: string;
+  fix: string;
+}
+
 export interface ForgeWeekItem {
   weekNumber: number;
   id: string;
@@ -28,6 +46,21 @@ export interface ForgeWeekItem {
   tags: string[];
   galleryImages?: (string | ForgeGalleryImage)[];
   codeSnippet?: { language: string; code: string; filename: string };
+  systemDesign?: {
+    diagram: string;
+    explanation: string;
+  };
+  hardwareSoftware?: ForgeHardwareSoftwareItem[];
+  wiringSetup?: {
+    diagram?: string;
+    description: string;
+    image?: string;
+  };
+  implementationDetails?: string;
+  configurationDetails?: string;
+  evidenceList?: ForgeEvidenceItem[];
+  challengesFixesList?: ForgeChallengeFixItem[];
+  repoLink?: string;
 }
 
 export const forgeWeeksData: ForgeWeekItem[] = [
@@ -338,8 +371,206 @@ export const forgeWeeksData: ForgeWeekItem[] = [
       { role: "Domain Lead", name: "Protosem Design & Electronics Team" }
     ]
   },
-  ...Array.from({ length: 17 }, (_, i) => {
-    const weekNum = i + 4;
+  {
+    weekNumber: 7,
+    id: "forge-w7",
+    title: "Week 7 — Real-Time Operating Systems (FreeRTOS) & ESP32 SD Card Datalogger Node",
+    subtitle: "FreeRTOS Task Scheduling, Priority Preemption, Mutex/Queue Concurrency & ESP32 SPI SD Card Datalogger Prototype",
+    dateRange: "Week 7",
+    category: "Real-Time Systems & IoT",
+    status: "Completed",
+    teamName: "Microcontrollers & Real-Time Embedded Systems Team",
+    role: "FreeRTOS Systems & Embedded Software Engineer",
+    summary: "During Week 7 of my ProtoSem Internship, I designed and implemented a multi-tasking embedded system utilizing FreeRTOS (Real-Time Operating System) on Arduino and ESP32 hardware architectures. The objective of this milestone was to transition from monolithic sequential loop execution to deterministic, real-time multi-task scheduling, eliminating blocking delays and solving resource contention in sensor telemetry nodes. I successfully built an Arduino-based FreeRTOS task scheduler demo with dynamic UART configuration, implemented priority-based task synchronization, and engineered an ESP32 SPI-based high-speed SD Card datalogger node using PlatformIO. The final outcome is a deterministic, fault-tolerant datalogging sensor node capable of concurrency control and file system operations without task starvation.",
+    objectives: [
+      "Understand Real-Time Operating System (FreeRTOS) kernel architecture, task priorities, and preemption.",
+      "Replace blocking delay() functions with non-blocking vTaskDelay() and pdMS_TO_TICKS().",
+      "Implement multi-task scheduling on Arduino UNO/Mega and ESP32 microcontrollers.",
+      "Engineered an SPI-based SD Card logger module for ESP32 with FAT file system read/write/append operations.",
+      "Prevent race conditions and task starvation using Mutex locks and priority inheritance.",
+      "Validate telemetry logging, sensor integration, and real-time execution via PlatformIO and Serial Monitor."
+    ],
+    activitiesCompleted: [
+      "Studied FreeRTOS kernel fundamentals, tick timers, task creation (xTaskCreate), and stack depth allocation.",
+      "Developed Arduino FreeRTOS Task Scheduler prototype (Example_1.ino & Example_2.ino) with dynamic UART delay tuning.",
+      "Configured PlatformIO project environment (platformio.ini) targeting ESP32 DevKit V1 with SPI and SD libraries.",
+      "Implemented SPI hardware bus interface (sd_logger.cpp & sd_logger.h) on custom pins (SCK: 18, MISO: 19, MOSI: 23, CS: 5).",
+      "Executed file system verification testing: sdLoggerBegin(), sdLoggerWrite(), sdLoggerAppend(), and sdLoggerRead().",
+      "Logged real-time sensor event streams to /logger.txt on a 32GB MicroSD card.",
+      "Captured hardware wiring evidence, screenshot proof, and live video demonstration."
+    ],
+    conceptsLearned: [
+      "Preemptive Multitasking & Priority Scheduling (configMAX_PRIORITIES)",
+      "Non-Blocking Tick Delays (vTaskDelay & pdMS_TO_TICKS)",
+      "SPI Synchronous Serial Bus Protocol (CS, SCK, MISO, MOSI)",
+      "FAT16/FAT32 File System Initialization & File Handles",
+      "Resource Concurrency & Mutex Locks in Shared Peripherals",
+      "PlatformIO Embedded C++ Build System & Dependency Management"
+    ],
+    skillsGained: [
+      "FreeRTOS Kernel",
+      "Real-Time Task Scheduling",
+      "ESP32 Programming",
+      "PlatformIO IDE",
+      "SPI Bus Protocol",
+      "SD Card File Systems",
+      "Embedded C++",
+      "Concurrency Control",
+      "Hardware Debugging",
+      "Multi-Tasking Architecture"
+    ],
+    keyLearnings: "Transitioning from monolithic loop architecture to FreeRTOS deterministic task scheduling eliminates blocking delay latency and guarantees real-time responsiveness for critical sensor events.",
+    reflection: "Through Week 7, I gained invaluable practical experience in real-time operating systems and multi-task embedded software design. Transitioning from traditional sequential loops to FreeRTOS taught me how to manage task priorities, prevent resource contention, and write non-blocking embedded C/C++ code. Building the ESP32 SPI SD Card datalogger node deepened my understanding of hardware bus protocols, file system management, and fault-tolerant logging. Moving forward, I plan to integrate FreeRTOS queues and semaphores for inter-task communication in my smart monitoring projects.",
+    highlights: [
+      "Engineered multi-tasking FreeRTOS scheduler on Arduino & ESP32 platforms.",
+      "Implemented non-blocking task execution replacing delay() with vTaskDelay().",
+      "Built ESP32 SPI MicroSD Card Datalogger logging sensor events to /logger.txt.",
+      "Configured custom SPI pins (18, 19, 23, 5) with FAT32 card size detection.",
+      "Captured complete hardware setup, serial logs, screenshots, and live demo video."
+    ],
+    systemDesign: {
+      diagram: `+-----------------------------------------------------------------------------------+
+|                            ESP32 Microcontroller Node                             |
+|                                                                                   |
+|  +---------------------+   +-----------------------+   +-----------------------+  |
+|  |   Task 1: Sensor    |   |   Task 2: User Input  |   |   Task 3: SD Logger   |  |
+|  |   Telemetry (10Hz)  |   |   & Serial Monitor    |   |   Writer Task (1Hz)   |  |
+|  +----------+----------+   +-----------+-----------+   +-----------+-----------+  |
+|             |                      |                               |              |
+|             +----------------------+-------------------------------+              |
+|                                    |                                              |
+|                                    v                                              |
+|                         [ FreeRTOS Kernel ]                                       |
+|                                    |                                              |
+|                                    v                                              |
+|                  [ SPI Controller & Hardware Bus ]                                |
+|                                    |                                              |
++------------------------------------+----------------------------------------------+
+                                     |
+                                     v
+                          +---------------------+
+                          |   SPI SD Module     |
+                          |  CS:  GPIO 5        |
+                          |  SCK: GPIO 18       |
+                          |  MISO: GPIO 19      |
+                          |  MOSI: GPIO 23      |
+                          |  File: /logger.txt  |
+                          +---------------------+`,
+      explanation: "The system architecture decouples sensor telemetry acquisition, UART serial command processing, and file writing into three independent FreeRTOS tasks governed by priority levels. Telemetry data captured by sensor tasks is passed to the SD Logger Task via thread-safe SPI transactions, writing structured entries directly to /logger.txt without blocking real-time execution."
+    },
+    hardwareSoftware: [
+      { name: "ESP32 DevKit V1", type: "Hardware", purpose: "Dual-core 240MHz microcontroller running FreeRTOS tasks and SPI SD logging" },
+      { name: "Arduino UNO / Mega", type: "Hardware", purpose: "8-bit AVR microcontroller used for initial FreeRTOS task scheduling & UART delay testing" },
+      { name: "MicroSD Card Module", type: "Hardware", purpose: "SPI-based flash memory adapter module for FAT32 /logger.txt file logging" },
+      { name: "MicroSD Card (32GB SDHC)", type: "Hardware", purpose: "Physical storage media formatted as FAT32" },
+      { name: "Push Button & IR Sensor", type: "Hardware", purpose: "Peripheral hardware inputs for interrupt trigger & preemption verification" },
+      { name: "FreeRTOS Kernel", type: "Software", purpose: "Real-time operating system kernel providing task management and synchronization" },
+      { name: "PlatformIO IDE", type: "Software", purpose: "Professional embedded C/C++ build tool for ESP32 compilation & flashing" },
+      { name: "Arduino IDE / FreeRTOS.h", type: "Software", purpose: "Embedded C++ environment with Arduino_FreeRTOS library for prototyping" },
+      { name: "SPI Protocol", type: "Protocol", purpose: "4-wire serial peripheral bus (CS, SCK, MISO, MOSI) for high-speed SD card data transfer" }
+    ],
+    wiringSetup: {
+      description: "The ESP32 microcontroller is connected to the MicroSD Card Adapter Module via hardware SPI pins: GPIO 5 (Chip Select), GPIO 18 (SCK Clock), GPIO 19 (MISO), and GPIO 23 (MOSI). The module is powered via 5V/3.3V and common ground. On the Arduino prototype, Digital Pin 6 drives the LED, Digital Pin 8 reads the push button, and Digital Pin 10 connects to the IR proximity sensor.",
+      diagram: `[ESP32 Board]                  [MicroSD Card Module]
++-------------+                +-------------------+
+|     GPIO 5  |--------------> | CS (Chip Select)  |
+|     GPIO 18 |--------------> | SCK (Clock)       |
+|     GPIO 19 |--------------> | MISO              |
+|     GPIO 23 |--------------> | MOSI              |
+|     5V / 3.3V--------------> | VCC               |
+|     GND     |--------------> | GND               |
++-------------+                +-------------------+`,
+      image: "/img/week-7/hardware-setup-sd.jpeg"
+    },
+    implementationDetails: "The implementation consists of two core components: (1) An Arduino FreeRTOS task scheduler (Example_1.ino / Example_2.ino) utilizing xTaskCreate() with non-blocking vTaskDelay() and dynamic UART baud configuration; (2) An ESP32 SPI SD Card datalogger (sd_logger.cpp) utilizing custom SPI pin mappings (18, 19, 23, 5), mounting FAT32 volumes, and performing file write, append, and read verification.",
+    codeSnippet: {
+      filename: "sd_logger.cpp (ESP32 SPI FreeRTOS SD Logger)",
+      language: "cpp",
+      code: `#include "sd_logger.h"
+#include <SPI.h>
+#include <SD.h>
+
+#define SD_CS_PIN    5
+#define SD_SCK_PIN   18
+#define SD_MISO_PIN  19
+#define SD_MOSI_PIN  23
+#define LOG_FILE     "/logger.txt"
+
+bool sdLoggerBegin() {
+    Serial.println("\\nInitializing SD card...");
+    SPI.begin(SD_SCK_PIN, SD_MISO_PIN, SD_MOSI_PIN, SD_CS_PIN);
+    if (!SD.begin(SD_CS_PIN, SPI)) {
+        Serial.println("SD initialization failed!");
+        return false;
+    }
+    Serial.println("SD initialization successful.");
+    uint64_t cardSize = SD.cardSize() / (1024 * 1024);
+    Serial.print("SD card size: ");
+    Serial.print(cardSize);
+    Serial.println(" MB");
+    return true;
+}
+
+bool sdLoggerAppend(const char *message) {
+    File file = SD.open(LOG_FILE, FILE_APPEND);
+    if (!file) return false;
+    file.println(message);
+    file.close();
+    return true;
+}`
+    },
+    configurationDetails: "PlatformIO environment configuration target: esp32dev with framework = arduino, monitor_speed = 115200, upload_speed = 921600. SPI pins mapped: CS=5, SCK=18, MISO=19, MOSI=23. Log filename target: /logger.txt. Credentials used: local hardware bus (no private API keys required).",
+    evidenceList: [
+      {
+        title: "Evidence 1 — Working FreeRTOS & SD Card Logger Output Verification",
+        explanation: "The screenshot shows the actual Serial Monitor output confirming successful SD card initialization, SDHC 32GB card type detection, and file write/append/read verification.",
+        mediaUrl: "/img/week-7/week7-photo1.png",
+        type: "image"
+      },
+      {
+        title: "Evidence 2 — ESP32 Hardware Setup & SPI MicroSD Wiring Arrangement",
+        explanation: "The photograph demonstrates the physical ESP32 hardware arrangement, SPI bus wiring connections, and MicroSD adapter module used for the prototype node.",
+        mediaUrl: "/img/week-7/hardware-setup-sd.jpeg",
+        type: "image"
+      },
+      {
+        title: "Evidence 3 — ESP32 FreeRTOS Telemetry System Node",
+        explanation: "The photograph shows the close-up view of the operational ESP32 node running FreeRTOS multi-tasking software with signal wiring.",
+        mediaUrl: "/img/week-7/freertos-esp32-node.jpeg",
+        type: "image"
+      },
+      {
+        title: "Evidence 4 — Live FreeRTOS Multi-Tasking & Datalogger Demonstration",
+        explanation: "The video demonstrates the implemented FreeRTOS prototype operating in real-time, executing tasks, handling serial events, and appending telemetry data to the SD card.",
+        mediaUrl: "/img/week-7/freertos-demo.mp4",
+        type: "video"
+      }
+    ],
+    galleryImages: [
+      { url: "/img/week-7/week7-photo1.png", caption: "Evidence 1: Serial Monitor FreeRTOS SD Card Test & Output Verification", type: "image" },
+      { url: "/img/week-7/hardware-setup-sd.jpeg", caption: "Evidence 2: Physical ESP32 Hardware Arrangement & SPI SD Wiring", type: "image" },
+      { url: "/img/week-7/freertos-esp32-node.jpeg", caption: "Evidence 3: ESP32 FreeRTOS Telemetry System Node", type: "image" },
+      { url: "/img/week-7/freertos-demo.mp4", caption: "Evidence 4: Live FreeRTOS Multi-Tasking & SD Logger Prototype Demonstration", type: "video" }
+    ],
+    challengesFixesList: [
+      {
+        challenge: "SD Card Initialization Failure ('SD initialization failed!') during initial boot on ESP32.",
+        fix: "Discovered default SPI bus pins conflicted with internal flash lines on specific ESP32 boards. Explicitly defined custom SPI pins (SCK: 18, MISO: 19, MOSI: 23, CS: 5) and initialized SPI.begin(18, 19, 23, 5) prior to calling SD.begin(5, SPI)."
+      },
+      {
+        challenge: "ESP32 Watchdog Timer (WDT) reset crash when low priority tasks executed continuous loops.",
+        fix: "Replaced all blocking loop delays with vTaskDelay(pdMS_TO_TICKS(ms)) to yield execution back to the FreeRTOS kernel and allow the IDLE task to reset the WDT timer."
+      }
+    ],
+    repoLink: "https://github.com/theeran-stack/portfolio",
+    tags: ["FreeRTOS", "ESP32", "Arduino", "PlatformIO", "SPI Protocol", "SD Datalogger", "Real-Time Systems", "Task Scheduling", "Embedded C++"],
+    teamCredits: [
+      { role: "FreeRTOS & Systems Engineer", name: "Theeran P." },
+      { role: "Domain Lead", name: "Protosem Microcontrollers & Real-Time Embedded Systems Team" }
+    ]
+  },
+  ...Array.from({ length: 16 }, (_, i) => {
+    const weekNum = i < 3 ? i + 4 : i + 5; // Skip week 7 since defined explicitly
     return {
       weekNumber: weekNum,
       id: `forge-w${weekNum}`,
