@@ -1,6 +1,7 @@
 export interface ForgeGalleryImage {
   url: string;
   caption: string;
+  type?: "image" | "video";
 }
 
 export interface ForgeWeekItem {

@@ -38,8 +38,61 @@ import {
   ImagePlus,
   Loader2,
   RefreshCw,
-  FileUp
+  FileUp,
+  Video,
+  Play,
+  Film
 } from "lucide-react";
+
+/**
+ * Utility to check if a media URL or item type corresponds to a video file.
+ */
+function isVideoUrl(url: string, itemType?: string): boolean {
+  if (itemType === "video") return true;
+  if (!url) return false;
+  if (url.startsWith("data:video/")) return true;
+  const lower = url.toLowerCase();
+  return (
+    lower.endsWith(".mp4") ||
+    lower.endsWith(".webm") ||
+    lower.endsWith(".ogg") ||
+    lower.endsWith(".mov") ||
+    lower.endsWith(".m4v") ||
+    lower.includes("youtube.com") ||
+    lower.includes("youtu.be") ||
+    lower.includes("vimeo.com")
+  );
+}
+
+/**
+ * Utility to read a video file from disk as a Data URL.
+ * Includes client-side size check to prevent localStorage quota errors.
+ */
+function readVideoFile(file: File): Promise<{ url: string; type: "video" }> {
+  return new Promise((resolve, reject) => {
+    if (!file.type.startsWith("video/")) {
+      reject(new Error("Selected file is not a valid video format. Please select an MP4, WebM, OGG or MOV file."));
+      return;
+    }
+    const MAX_VIDEO_SIZE = 15 * 1024 * 1024; // 15MB
+    if (file.size > MAX_VIDEO_SIZE) {
+      reject(new Error(`Video file size (${(file.size / (1024 * 1024)).toFixed(1)}MB) exceeds 15MB. Please upload a smaller video file to save in local storage.`));
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("Failed to read video file from disk."));
+    reader.onload = (e) => {
+      const dataUrl = e.target?.result as string;
+      if (!dataUrl) {
+        reject(new Error("Video content is empty."));
+        return;
+      }
+      resolve({ url: dataUrl, type: "video" });
+    };
+    reader.readAsDataURL(file);
+  });
+}
 
 /**
  * Client-side utility to read an image file from the local disk/system
@@ -126,6 +179,7 @@ export default function ForgePage() {
   const [editingWeek, setEditingWeek] = useState<ForgeWeekItem | null>(null);
   const [newImageUrl, setNewImageUrl] = useState("");
   const [newImageCaption, setNewImageCaption] = useState("");
+  const [newMediaType, setNewMediaType] = useState<"image" | "video">("image");
   const [activeEditorTab, setActiveEditorTab] = useState<"general" | "lists" | "text" | "gallery">("general");
 
   // System Image File Upload States
@@ -189,28 +243,45 @@ export default function ForgePage() {
     setUploadError(null);
 
     try {
-      const compressedDataUrl = await compressAndReadImage(file);
+      let resultUrl = "";
+      let mediaType: "image" | "video" = "image";
+
+      if (file.type.startsWith("video/")) {
+        const videoRes = await readVideoFile(file);
+        resultUrl = videoRes.url;
+        mediaType = "video";
+      } else if (file.type.startsWith("image/")) {
+        resultUrl = await compressAndReadImage(file);
+        mediaType = "image";
+      } else {
+        throw new Error("Unsupported file format. Please select an Image (PNG, JPG, WebP) or Video (MP4, WebM, MOV).");
+      }
+
       if (!editingWeek) return;
+
+      const autoCaption = file.name.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " ");
+      const defaultCaption = autoCaption || `Week ${editingWeek.weekNumber} ${mediaType === "video" ? "Video" : "Photo"}`;
 
       if (replaceIdx !== undefined && replaceIdx !== null) {
         const updated = [...(editingWeek.galleryImages || [])];
         const existingItem = updated[replaceIdx];
         const existingCaption = typeof existingItem === "string" ? "" : existingItem.caption;
         updated[replaceIdx] = { 
-          url: compressedDataUrl, 
-          caption: existingCaption || file.name.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " ") || `Week ${editingWeek.weekNumber} Photo` 
+          url: resultUrl, 
+          caption: existingCaption || defaultCaption,
+          type: mediaType
         };
         setEditingWeek({ ...editingWeek, galleryImages: updated });
       } else {
-        setNewImageUrl(compressedDataUrl);
+        setNewImageUrl(resultUrl);
+        setNewMediaType(mediaType);
         if (!newImageCaption) {
-          const autoCaption = file.name.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " ");
-          setNewImageCaption(autoCaption || `Week ${editingWeek.weekNumber} Photo`);
+          setNewImageCaption(defaultCaption);
         }
       }
     } catch (err: any) {
-      console.error("Image upload error:", err);
-      setUploadError(err?.message || "Failed to process image file from system.");
+      console.error("Media upload error:", err);
+      setUploadError(err?.message || "Failed to process media file from system.");
     } finally {
       setIsUploading(false);
       setTargetReplaceIdx(null);
@@ -592,20 +663,22 @@ export default function ForgePage() {
                           </div>
                         )}
 
-                        {/* GALLERY IMAGES */}
+                        {/* MEDIA & VIDEO GALLERY */}
                         {week.galleryImages && week.galleryImages.length > 0 && (
                           <div className="space-y-3 pt-2">
                             <div className="flex items-center justify-between">
                               <span className="text-[10px] font-mono text-white uppercase tracking-wider font-bold flex items-center gap-1.5">
                                 <ImageIcon className="h-3.5 w-3.5 text-white" />
-                                <span>PHOTO LOG & LAB GALLERY ({week.galleryImages.length} IMAGES)</span>
+                                <span>MEDIA & VIDEO GALLERY ({week.galleryImages.length} ITEMS)</span>
                               </span>
                               <span className="text-[10px] font-mono text-neutral-400">Click to expand</span>
                             </div>
                             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                               {week.galleryImages.map((imgItem, imgIdx) => {
                                 const url = typeof imgItem === "string" ? imgItem : imgItem.url;
-                                const caption = typeof imgItem === "string" ? `Week ${week.weekNumber} Photo ${imgIdx + 1}` : imgItem.caption;
+                                const caption = typeof imgItem === "string" ? `Week ${week.weekNumber} Media ${imgIdx + 1}` : imgItem.caption;
+                                const itemType = typeof imgItem === "string" ? undefined : imgItem.type;
+                                const isVid = isVideoUrl(url, itemType);
 
                                 return (
                                   <motion.div
@@ -615,22 +688,38 @@ export default function ForgePage() {
                                     className="group relative cursor-pointer overflow-hidden rounded-xl glass-panel p-2 border border-white/15 hover:border-white/40 transition-all bg-black/60 shadow-md flex flex-col justify-between"
                                   >
                                     <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-neutral-950">
-                                      <img
-                                        src={url}
-                                        alt={caption}
-                                        loading="lazy"
-                                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                                      />
+                                      {isVid ? (
+                                        <video
+                                          src={url}
+                                          muted
+                                          playsInline
+                                          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                        />
+                                      ) : (
+                                        <img
+                                          src={url}
+                                          alt={caption}
+                                          loading="lazy"
+                                          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                        />
+                                      )}
+                                      {isVid && (
+                                        <div className="absolute top-2 right-2 px-2 py-0.5 rounded-md bg-black/70 backdrop-blur-md text-[9px] font-mono font-bold text-amber-300 border border-amber-500/40 flex items-center gap-1 z-10">
+                                          <Video className="h-3 w-3" />
+                                          <span>VIDEO</span>
+                                        </div>
+                                      )}
                                       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white/20 backdrop-blur-md text-white border border-white/30">
-                                          <Maximize2 className="h-4 w-4" />
+                                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/20 backdrop-blur-md text-white border border-white/30 shadow-lg">
+                                          {isVid ? <Play className="h-5 w-5 fill-white text-white ml-0.5" /> : <Maximize2 className="h-4 w-4" />}
                                         </div>
                                       </div>
                                     </div>
-                                    <div className="pt-2 px-1">
+                                    <div className="pt-2 px-1 flex items-center justify-between gap-1">
                                       <p className="text-[11px] text-neutral-300 font-sans line-clamp-2 leading-snug group-hover:text-white transition-colors">
                                         {caption}
                                       </p>
+                                      {isVid && <Film className="h-3.5 w-3.5 text-amber-400 shrink-0" />}
                                     </div>
                                   </motion.div>
                                 );
@@ -827,21 +916,40 @@ export default function ForgePage() {
               <ChevronRight className="h-6 w-6" />
             </button>
 
-            <div className="max-w-4xl w-full space-y-4 text-center">
-              <div className="relative inline-block overflow-hidden rounded-2xl glass-panel-elevated p-3 border border-white/25 shadow-2xl max-h-[75vh]">
-                <img
-                  src={currentLightboxImageUrl}
-                  alt={currentLightboxCaption}
-                  className="max-h-[70vh] max-w-full object-contain rounded-xl mx-auto"
-                />
-              </div>
-              <div className="space-y-1 max-w-xl mx-auto">
-                <p className="text-sm font-semibold text-white">{currentLightboxCaption}</p>
-                <p className="text-xs font-mono text-neutral-400">
-                  Week {activeLightboxWeek?.weekNumber} • Image {activeLightbox.imageIndex + 1} of {activeLightboxWeek?.galleryImages?.length}
-                </p>
-              </div>
-            </div>
+            {(() => {
+              const itemType = typeof currentGalleryItem === "string" ? undefined : currentGalleryItem?.type;
+              const isVid = isVideoUrl(currentLightboxImageUrl, itemType);
+
+              return (
+                <div className="max-w-4xl w-full space-y-4 text-center">
+                  <div className="relative inline-block overflow-hidden rounded-2xl glass-panel-elevated p-3 border border-white/25 shadow-2xl max-h-[75vh]">
+                    {isVid ? (
+                      <video
+                        src={currentLightboxImageUrl}
+                        controls
+                        autoPlay
+                        className="max-h-[70vh] max-w-full rounded-xl mx-auto shadow-2xl"
+                      />
+                    ) : (
+                      <img
+                        src={currentLightboxImageUrl}
+                        alt={currentLightboxCaption}
+                        className="max-h-[70vh] max-w-full object-contain rounded-xl mx-auto"
+                      />
+                    )}
+                  </div>
+                  <div className="space-y-1 max-w-xl mx-auto">
+                    <p className="text-sm font-semibold text-white flex items-center justify-center gap-2">
+                      {isVid && <Video className="h-4 w-4 text-amber-400" />}
+                      <span>{currentLightboxCaption}</span>
+                    </p>
+                    <p className="text-xs font-mono text-neutral-400">
+                      Week {activeLightboxWeek?.weekNumber} • Item {activeLightbox.imageIndex + 1} of {activeLightboxWeek?.galleryImages?.length} {isVid ? "(Video)" : "(Image)"}
+                    </p>
+                  </div>
+                </div>
+              );
+            })()}
           </motion.div>
         )}
       </AnimatePresence>
@@ -864,7 +972,7 @@ export default function ForgePage() {
               <div className="flex items-center justify-between border-b border-white/10 pb-4">
                 <div className="flex items-center gap-2 text-white font-mono text-base font-bold">
                   <Edit3 className="h-5 w-5 text-emerald-400" />
-                  <span>Edit Week {editingWeek.weekNumber} Content & Images</span>
+                  <span>Edit Week {editingWeek.weekNumber} Content & Media</span>
                 </div>
                 <button
                   onClick={() => setEditingWeek(null)}
@@ -918,7 +1026,7 @@ export default function ForgePage() {
                       : "glass-panel text-neutral-400 hover:text-white"
                   }`}
                 >
-                  Images Gallery ({editingWeek.galleryImages?.length || 0})
+                  Media & Video Gallery ({editingWeek.galleryImages?.length || 0})
                 </button>
               </div>
 
@@ -1185,14 +1293,14 @@ export default function ForgePage() {
                 </div>
               )}
 
-              {/* TAB 4: IMAGES GALLERY MANAGER (Add, Edit, Delete & Upload Images from System) */}
+              {/* TAB 4: MEDIA & VIDEO GALLERY MANAGER */}
               {activeEditorTab === "gallery" && (
                 <div className="space-y-6">
                   {/* Hidden File Inputs for System File Dialog */}
                   <input
                     type="file"
                     ref={fileInputRef}
-                    accept="image/*"
+                    accept="image/*,video/*"
                     className="hidden"
                     onChange={(e) => {
                       if (e.target.files && e.target.files[0]) {
@@ -1204,7 +1312,7 @@ export default function ForgePage() {
                   <input
                     type="file"
                     ref={replaceFileInputRef}
-                    accept="image/*"
+                    accept="image/*,video/*"
                     className="hidden"
                     onChange={(e) => {
                       if (e.target.files && e.target.files[0] && targetReplaceIdx !== null) {
@@ -1231,7 +1339,7 @@ export default function ForgePage() {
                   {isUploading && (
                     <div className="rounded-xl border border-emerald-500/40 bg-emerald-950/40 p-3 text-xs text-emerald-300 flex items-center gap-2 font-mono animate-pulse">
                       <Loader2 className="h-4 w-4 animate-spin text-emerald-400" />
-                      <span>Reading and compressing image file from system...</span>
+                      <span>Reading and processing media file (image/video) from system...</span>
                     </div>
                   )}
 
@@ -1252,33 +1360,44 @@ export default function ForgePage() {
                     </div>
                     <div className="space-y-0.5">
                       <p className="text-xs font-semibold text-white">
-                        Click to Choose File or Drag & Drop Image from System
+                        Click to Choose File or Drag & Drop Image or Video from System
                       </p>
                       <p className="text-[11px] text-neutral-400 font-mono">
-                        Supports PNG, JPG, WebP, GIF • Automatic client-side canvas optimization
+                        Supports PNG, JPG, WebP, GIF, MP4, WebM, MOV, OGG • Automatic client-side canvas & media handling
                       </p>
                     </div>
                   </div>
 
-                  {/* Current Gallery Images List */}
+                  {/* Current Gallery Media List */}
                   <div className="space-y-3">
                     <label className="text-[11px] font-mono text-white font-bold uppercase flex items-center gap-1.5">
                       <ImageIcon className="h-3.5 w-3.5 text-white" />
-                      <span>EXISTING GALLERY IMAGES ({editingWeek.galleryImages?.length || 0})</span>
+                      <span>EXISTING GALLERY MEDIA ({editingWeek.galleryImages?.length || 0})</span>
                     </label>
 
                     {(!editingWeek.galleryImages || editingWeek.galleryImages.length === 0) ? (
-                      <p className="text-xs text-neutral-400 italic">No images currently in this week's gallery.</p>
+                      <p className="text-xs text-neutral-400 italic">No media items currently in this week's gallery.</p>
                     ) : (
                       <div data-lenis-prevent className="space-y-3 max-h-72 overflow-y-auto pr-1">
                         {editingWeek.galleryImages.map((imgItem, imgIdx) => {
                           const url = typeof imgItem === "string" ? imgItem : imgItem.url;
                           const caption = typeof imgItem === "string" ? "" : imgItem.caption;
+                          const itemType = typeof imgItem === "string" ? undefined : imgItem.type;
+                          const isVid = isVideoUrl(url, itemType);
 
                           return (
                             <div key={imgIdx} className="glass-panel p-3 rounded-xl border border-white/15 flex flex-col sm:flex-row items-center gap-3 bg-black/40">
                               <div className="relative h-16 w-24 shrink-0 overflow-hidden rounded-lg bg-neutral-950 border border-white/10 group">
-                                <img src={url} alt={caption} className="h-full w-full object-cover" />
+                                {isVid ? (
+                                  <video src={url} muted className="h-full w-full object-cover" />
+                                ) : (
+                                  <img src={url} alt={caption} className="h-full w-full object-cover" />
+                                )}
+                                <div className={`absolute top-1 right-1 px-1 py-0.5 rounded text-[8px] font-mono font-bold ${
+                                  isVid ? "bg-amber-500/80 text-black" : "bg-black/70 text-white"
+                                }`}>
+                                  {isVid ? "VIDEO" : "IMAGE"}
+                                </div>
                               </div>
 
                               <div className="flex-1 space-y-1.5 w-full">
@@ -1288,10 +1407,12 @@ export default function ForgePage() {
                                     value={url}
                                     onChange={(e) => {
                                       const updated = [...(editingWeek.galleryImages || [])];
-                                      updated[imgIdx] = { url: e.target.value, caption };
+                                      const newIsVid = isVideoUrl(e.target.value);
+                                      const mediaKind: "video" | "image" = newIsVid ? "video" : "image";
+                                      updated[imgIdx] = { url: e.target.value, caption, type: mediaKind };
                                       setEditingWeek({ ...editingWeek, galleryImages: updated });
                                     }}
-                                    placeholder="Image URL or Base64 Data URL..."
+                                    placeholder="Media URL or Base64 Data URL..."
                                     className="w-full rounded-lg glass-panel p-1.5 text-xs text-white border border-white/10 bg-black/50 font-mono"
                                   />
                                 </div>
@@ -1300,10 +1421,11 @@ export default function ForgePage() {
                                   value={caption}
                                   onChange={(e) => {
                                     const updated = [...(editingWeek.galleryImages || [])];
-                                    updated[imgIdx] = { url, caption: e.target.value };
+                                    const mediaKind: "video" | "image" = isVid ? "video" : "image";
+                                    updated[imgIdx] = { url, caption: e.target.value, type: mediaKind };
                                     setEditingWeek({ ...editingWeek, galleryImages: updated });
                                   }}
-                                  placeholder="Image Caption..."
+                                  placeholder="Media Caption..."
                                   className="w-full rounded-lg glass-panel p-1.5 text-xs text-neutral-300 border border-white/10 bg-black/50"
                                 />
                               </div>
@@ -1316,7 +1438,7 @@ export default function ForgePage() {
                                     replaceFileInputRef.current?.click();
                                   }}
                                   className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 text-xs font-mono"
-                                  title="Replace this image with a file from your computer"
+                                  title="Replace this media file with a file from your computer"
                                 >
                                   <RefreshCw className="h-3.5 w-3.5" />
                                   <span>Replace</span>
@@ -1340,12 +1462,12 @@ export default function ForgePage() {
                     )}
                   </div>
 
-                  {/* Add New Image Section */}
+                  {/* Add New Media Section */}
                   <div className="pt-4 border-t border-white/10 space-y-3">
                     <div className="flex items-center justify-between">
                       <label className="text-[11px] font-mono text-emerald-300 font-bold uppercase flex items-center gap-1">
                         <Plus className="h-3.5 w-3.5 text-emerald-400" />
-                        <span>ADD NEW IMAGE TO GALLERY</span>
+                        <span>ADD NEW MEDIA (IMAGE / VIDEO) TO GALLERY</span>
                       </label>
 
                       <button
@@ -1354,7 +1476,7 @@ export default function ForgePage() {
                         className="flex items-center gap-1.5 rounded-lg bg-white/10 px-3 py-1 text-xs font-mono text-white border border-white/20 hover:bg-white/20 transition-all"
                       >
                         <Upload className="h-3.5 w-3.5 text-emerald-400" />
-                        <span>Upload from System</span>
+                        <span>Upload Image or Video</span>
                       </button>
                     </div>
 
@@ -1362,28 +1484,40 @@ export default function ForgePage() {
                       <input
                         type="text"
                         value={newImageUrl}
-                        onChange={(e) => setNewImageUrl(e.target.value)}
-                        placeholder="Image URL or upload from system above..."
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setNewImageUrl(val);
+                          if (isVideoUrl(val)) {
+                            setNewMediaType("video");
+                          }
+                        }}
+                        placeholder="Image/Video URL or upload file above..."
                         className="rounded-xl glass-panel p-2.5 text-xs text-white border border-white/15 bg-black/40 focus:outline-none focus:border-white font-mono"
                       />
                       <input
                         type="text"
                         value={newImageCaption}
                         onChange={(e) => setNewImageCaption(e.target.value)}
-                        placeholder="Image Caption description..."
+                        placeholder="Media Caption description..."
                         className="rounded-xl glass-panel p-2.5 text-xs text-white border border-white/15 bg-black/40 focus:outline-none focus:border-white"
                       />
                     </div>
 
-                    {/* Preview of newly uploaded or typed image */}
+                    {/* Preview of newly uploaded or typed media */}
                     {newImageUrl && (
                       <div className="flex items-center gap-3 p-3 rounded-xl glass-panel border border-emerald-500/30 bg-emerald-950/20">
-                        <div className="h-14 w-20 shrink-0 overflow-hidden rounded-lg bg-black border border-white/15">
-                          <img src={newImageUrl} alt="Preview" className="h-full w-full object-cover" />
+                        <div className="h-14 w-20 shrink-0 overflow-hidden rounded-lg bg-black border border-white/15 relative">
+                          {isVideoUrl(newImageUrl, newMediaType) ? (
+                            <video src={newImageUrl} muted className="h-full w-full object-cover" />
+                          ) : (
+                            <img src={newImageUrl} alt="Preview" className="h-full w-full object-cover" />
+                          )}
                         </div>
                         <div className="flex-1 text-xs text-neutral-300 truncate">
-                          <p className="font-semibold text-white truncate">{newImageCaption || "Untitled Image"}</p>
-                          <p className="text-[10px] font-mono text-emerald-400">Ready to add to gallery</p>
+                          <p className="font-semibold text-white truncate">{newImageCaption || "Untitled Media"}</p>
+                          <p className="text-[10px] font-mono text-emerald-400">
+                            Ready to add as {isVideoUrl(newImageUrl, newMediaType) ? "Video" : "Image"}
+                          </p>
                         </div>
                       </div>
                     )}
@@ -1394,7 +1528,16 @@ export default function ForgePage() {
                         onClick={() => {
                           if (!newImageUrl.trim()) return;
                           const currentGallery = editingWeek.galleryImages || [];
-                          const updated = [...currentGallery, { url: newImageUrl.trim(), caption: newImageCaption.trim() || `Week ${editingWeek.weekNumber} Image` }];
+                          const isVid = isVideoUrl(newImageUrl.trim(), newMediaType);
+                          const mediaKind: "video" | "image" = isVid ? "video" : "image";
+                          const updated: (string | ForgeGalleryImage)[] = [
+                            ...currentGallery, 
+                            { 
+                              url: newImageUrl.trim(), 
+                              caption: newImageCaption.trim() || `Week ${editingWeek.weekNumber} ${isVid ? "Video" : "Media"}`,
+                              type: mediaKind
+                            }
+                          ];
                           setEditingWeek({ ...editingWeek, galleryImages: updated });
                           setNewImageUrl("");
                           setNewImageCaption("");
@@ -1403,7 +1546,7 @@ export default function ForgePage() {
                         className="flex items-center gap-1.5 rounded-full bg-emerald-500/20 px-4 py-2 text-xs font-mono font-bold text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/30 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
                       >
                         <Plus className="h-3.5 w-3.5" />
-                        <span>Add Image to Gallery</span>
+                        <span>Add Media to Gallery</span>
                       </button>
                     </div>
                   </div>
