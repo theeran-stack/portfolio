@@ -16,7 +16,7 @@ import {
   Target, 
   AlertTriangle, 
   Lightbulb, 
-  BookOpen, 
+  BookOpen,
   Check, 
   Copy,
   Code,
@@ -34,11 +34,7 @@ import {
   RotateCcw,
   ShieldAlert,
   Upload,
-  UploadCloud,
-  ImagePlus,
   Loader2,
-  RefreshCw,
-  FileUp,
   Video,
   Play,
   Film,
@@ -47,7 +43,9 @@ import {
   Settings,
   ExternalLink,
   ShieldCheck,
-  Wrench
+  Wrench,
+  FileCode,
+  Info
 } from "lucide-react";
 
 /**
@@ -71,12 +69,11 @@ function isVideoUrl(url: string, itemType?: string): boolean {
 }
 
 /**
- * IndexedDB storage engine for large media (video base64 Data URLs & images).
- * Prevents 5MB localStorage QuotaExceededError crashes.
+ * IndexedDB storage engine for large media uploads.
  */
 const DB_NAME = "ProtoSemDB";
 const STORE_NAME = "custom_weeks";
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 function getIDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
@@ -102,7 +99,7 @@ async function saveCustomWeeksToDB(weeks: ForgeWeekItem[]): Promise<void> {
     await new Promise<void>((resolve, reject) => {
       const tx = db.transaction(STORE_NAME, "readwrite");
       const store = tx.objectStore(STORE_NAME);
-      const req = store.put(weeks, "protosem_custom_weeks_data");
+      const req = store.put(weeks, "protosem_custom_weeks_v3");
       req.onsuccess = () => resolve();
       req.onerror = () => reject(req.error);
     });
@@ -110,12 +107,11 @@ async function saveCustomWeeksToDB(weeks: ForgeWeekItem[]): Promise<void> {
     console.warn("IndexedDB save warning:", err);
   }
 
-  // Sync to localStorage if small enough
   if (typeof window !== "undefined") {
     try {
-      localStorage.setItem("protosem_custom_weeks_data", JSON.stringify(weeks));
+      localStorage.setItem("protosem_custom_weeks_v3", JSON.stringify(weeks));
     } catch (e) {
-      console.warn("localStorage quota limit reached. Media saved securely in IndexedDB:", e);
+      console.warn("localStorage quota limit reached:", e);
     }
   }
 }
@@ -126,7 +122,7 @@ async function loadCustomWeeksFromDB(): Promise<ForgeWeekItem[] | null> {
     const data = await new Promise<ForgeWeekItem[] | null>((resolve) => {
       const tx = db.transaction(STORE_NAME, "readonly");
       const store = tx.objectStore(STORE_NAME);
-      const req = store.get("protosem_custom_weeks_data");
+      const req = store.get("protosem_custom_weeks_v3");
       req.onsuccess = () => resolve(req.result || null);
       req.onerror = () => resolve(null);
     });
@@ -139,7 +135,7 @@ async function loadCustomWeeksFromDB(): Promise<ForgeWeekItem[] | null> {
 
   if (typeof window !== "undefined") {
     try {
-      const saved = localStorage.getItem("protosem_custom_weeks_data");
+      const saved = localStorage.getItem("protosem_custom_weeks_v3");
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
@@ -153,348 +149,68 @@ async function loadCustomWeeksFromDB(): Promise<ForgeWeekItem[] | null> {
   return null;
 }
 
-async function clearCustomWeeksFromDB(): Promise<void> {
-  try {
-    const db = await getIDB();
-    const tx = db.transaction(STORE_NAME, "readwrite");
-    const store = tx.objectStore(STORE_NAME);
-    store.delete("protosem_custom_weeks_data");
-  } catch {
-    // ignore
-  }
-  if (typeof window !== "undefined") {
-    try {
-      localStorage.removeItem("protosem_custom_weeks_data");
-    } catch {
-      // ignore
-    }
-  }
-}
-
-/**
- * Utility to read a video file from disk as a Data URL.
- * Includes client-side size check.
- */
-function readVideoFile(file: File): Promise<{ url: string; type: "video" }> {
-  return new Promise((resolve, reject) => {
-    if (!file.type.startsWith("video/")) {
-      reject(new Error("Selected file is not a valid video format. Please select an MP4, WebM, OGG or MOV file."));
-      return;
-    }
-    const MAX_VIDEO_SIZE = 50 * 1024 * 1024; // 50MB
-    if (file.size > MAX_VIDEO_SIZE) {
-      reject(new Error(`Video file size (${(file.size / (1024 * 1024)).toFixed(1)}MB) exceeds 50MB. Please select a smaller video file.`));
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onerror = () => reject(new Error("Failed to read video file from disk."));
-    reader.onload = (e) => {
-      const dataUrl = e.target?.result as string;
-      if (!dataUrl) {
-        reject(new Error("Video content is empty."));
-        return;
-      }
-      resolve({ url: dataUrl, type: "video" });
-    };
-    reader.readAsDataURL(file);
-  });
-}
-
-/**
- * Client-side utility to read an image file from the local disk/system
- * and compress it using HTML5 Canvas before producing a Data URL.
- */
-function compressAndReadImage(file: File, maxWidth = 1200, maxHeight = 1200, quality = 0.85): Promise<string> {
-  return new Promise((resolve, reject) => {
-    if (!file.type.startsWith("image/")) {
-      reject(new Error("Selected file is not a valid image format. Please select a PNG, JPG, WebP or GIF."));
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onerror = () => reject(new Error("Failed to read image file from disk."));
-    reader.onload = (e) => {
-      const rawDataUrl = e.target?.result as string;
-      if (!rawDataUrl) {
-        reject(new Error("Image content is empty."));
-        return;
-      }
-
-      const img = new Image();
-      img.onerror = () => reject(new Error("Failed to decode image data."));
-      img.onload = () => {
-        let width = img.width;
-        let height = img.height;
-
-        if (width > maxWidth || height > maxHeight) {
-          if (width > height) {
-            height = Math.round((height * maxWidth) / width);
-            width = maxWidth;
-          } else {
-            width = Math.round((width * maxHeight) / height);
-            height = maxHeight;
-          }
-        }
-
-        const canvas = document.createElement("canvas");
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext("2d");
-
-        if (!ctx) {
-          resolve(rawDataUrl);
-          return;
-        }
-
-        ctx.drawImage(img, 0, 0, width, height);
-
-        try {
-          const webpDataUrl = canvas.toDataURL("image/webp", quality);
-          if (webpDataUrl && webpDataUrl.startsWith("data:image/webp")) {
-            resolve(webpDataUrl);
-            return;
-          }
-        } catch {
-          // ignore webp fallback
-        }
-
-        try {
-          const jpegDataUrl = canvas.toDataURL("image/jpeg", quality);
-          resolve(jpegDataUrl);
-        } catch {
-          resolve(rawDataUrl);
-        }
-      };
-      img.src = rawDataUrl;
-    };
-    reader.readAsDataURL(file);
-  });
-}
-
 export default function ForgePage() {
   const [weeks, setWeeks] = useState<ForgeWeekItem[]>(forgeWeeksData);
-  const [isAdmin, setIsAdmin] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<string>("All");
-  const [expandedWeek, setExpandedWeek] = useState<number | null>(1); // Week 1 open by default
-  const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState("All");
+  const [expandedWeek, setExpandedWeek] = useState<number | null>(7);
   const [activeLightbox, setActiveLightbox] = useState<{ weekNumber: number; imageIndex: number } | null>(null);
+  const [copiedCode, setCopiedCode] = useState<string | null>(null);
 
-  // Week Editor Modal State
+  // Admin Edit Mode State
+  const [isAdmin, setIsAdmin] = useState(false);
   const [editingWeek, setEditingWeek] = useState<ForgeWeekItem | null>(null);
+  const [activeEditorTab, setActiveEditorTab] = useState<"general" | "sections" | "gallery">("general");
   const [newImageUrl, setNewImageUrl] = useState("");
   const [newImageCaption, setNewImageCaption] = useState("");
   const [newMediaType, setNewMediaType] = useState<"image" | "video">("image");
-  const [activeEditorTab, setActiveEditorTab] = useState<"general" | "lists" | "text" | "gallery">("general");
-
-  // System Image File Upload States
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadError, setUploadError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const [targetReplaceIdx, setTargetReplaceIdx] = useState<number | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const replaceFileInputRef = useRef<HTMLInputElement>(null);
 
-  const categories = ["All", "Completed", "In Progress"];
-
+  // Sync admin state and load persisted data
   useEffect(() => {
     if (typeof window !== "undefined") {
-      // Check Admin Auth state from secret contact password
-      const auth = localStorage.getItem("protosem_admin_authenticated");
-      if (auth === "true") {
-        setIsAdmin(true);
-      }
+      const unlocked = localStorage.getItem("protosem_admin_unlocked") === "true";
+      setIsAdmin(unlocked);
 
-      // Check Saved Custom Weeks Data from IndexedDB + localStorage
-      const loadData = async () => {
-        try {
-          const savedWeeks = await loadCustomWeeksFromDB();
-          if (savedWeeks && savedWeeks.length > 0) {
-            setWeeks(savedWeeks);
-          }
-        } catch (e) {
-          console.error("Failed to load custom weeks from storage", e);
+      loadCustomWeeksFromDB().then((saved) => {
+        if (saved && Array.isArray(saved) && saved.length > 0) {
+          // Merge saved edits with forgeWeeksData, ensuring authentic completed weeks (0-8) are preserved
+          const merged = forgeWeeksData.map((defaultWeek) => {
+            const savedWeek = saved.find((s) => s.weekNumber === defaultWeek.weekNumber);
+            if (!savedWeek) return defaultWeek;
+            if (defaultWeek.status === "Completed" && savedWeek.status === "In Progress") {
+              return defaultWeek;
+            }
+            return savedWeek;
+          });
+          setWeeks(merged);
         }
-      };
-
-      loadData();
+      });
     }
   }, []);
 
-  useEffect(() => {
-    if (editingWeek) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [editingWeek]);
+  const categories = ["All", ...Array.from(new Set(weeks.map((w) => w.category)))];
 
-  const handleSaveWeekEdit = async () => {
-    if (!editingWeek) return;
-    setIsSaving(true);
-    setSaveError(null);
+  const filteredWeeks = weeks
+    .filter((w) => {
+      const matchesCategory = selectedCategory === "All" || w.category === selectedCategory;
+      const query = searchQuery.toLowerCase();
+      const matchesSearch =
+        w.title.toLowerCase().includes(query) ||
+        w.subtitle.toLowerCase().includes(query) ||
+        w.summary.toLowerCase().includes(query) ||
+        w.tags.some((t) => t.toLowerCase().includes(query));
 
-    try {
-      let finalEditingWeek = { ...editingWeek };
+      return matchesCategory && matchesSearch;
+    })
+    .sort((a, b) => a.weekNumber - b.weekNumber);
 
-      // Auto-stage any unsaved URL entered in newImageUrl field
-      if (newImageUrl.trim()) {
-        const isVid = isVideoUrl(newImageUrl.trim(), newMediaType);
-        const mediaKind: "video" | "image" = isVid ? "video" : "image";
-        const currentGallery = finalEditingWeek.galleryImages || [];
-        finalEditingWeek.galleryImages = [
-          ...currentGallery,
-          {
-            url: newImageUrl.trim(),
-            caption: newImageCaption.trim() || `Week ${finalEditingWeek.weekNumber} ${isVid ? "Video" : "Media"}`,
-            type: mediaKind
-          }
-        ];
-      }
-
-      const updatedWeeks = weeks.map((w) => (w.weekNumber === finalEditingWeek.weekNumber ? finalEditingWeek : w));
-
-      // Persist data in IndexedDB & localStorage
-      await saveCustomWeeksToDB(updatedWeeks);
-
-      setWeeks(updatedWeeks);
-      setEditingWeek(null);
-      setNewImageUrl("");
-      setNewImageCaption("");
-    } catch (err: any) {
-      console.error("Failed to save week changes:", err);
-      setSaveError(err?.message || "Failed to save week changes. Storage space limit exceeded.");
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleSystemFileUpload = async (file: File, replaceIdx?: number | null) => {
-    if (!file) return;
-    setIsUploading(true);
-    setUploadError(null);
-
-    try {
-      let resultUrl = "";
-      let mediaType: "image" | "video" = "image";
-
-      if (file.type.startsWith("video/")) {
-        const videoRes = await readVideoFile(file);
-        resultUrl = videoRes.url;
-        mediaType = "video";
-      } else if (file.type.startsWith("image/")) {
-        resultUrl = await compressAndReadImage(file);
-        mediaType = "image";
-      } else {
-        throw new Error("Unsupported file format. Please select an Image (PNG, JPG, WebP) or Video (MP4, WebM, MOV).");
-      }
-
-      if (!editingWeek) return;
-
-      const autoCaption = file.name.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " ");
-      const defaultCaption = autoCaption || `Week ${editingWeek.weekNumber} ${mediaType === "video" ? "Video" : "Photo"}`;
-
-      if (replaceIdx !== undefined && replaceIdx !== null) {
-        const updated = [...(editingWeek.galleryImages || [])];
-        const existingItem = updated[replaceIdx];
-        const existingCaption = typeof existingItem === "string" ? "" : existingItem.caption;
-        updated[replaceIdx] = { 
-          url: resultUrl, 
-          caption: existingCaption || defaultCaption,
-          type: mediaType
-        };
-        setEditingWeek({ ...editingWeek, galleryImages: updated });
-      } else {
-        // Automatically add the uploaded video/image into editingWeek.galleryImages immediately!
-        const updated = [...(editingWeek.galleryImages || [])];
-        updated.push({
-          url: resultUrl,
-          caption: defaultCaption,
-          type: mediaType
-        });
-        setEditingWeek({ ...editingWeek, galleryImages: updated });
-        setNewImageUrl("");
-        setNewImageCaption("");
-      }
-    } catch (err: any) {
-      console.error("Media upload error:", err);
-      setUploadError(err?.message || "Failed to process media file from system.");
-    } finally {
-      setIsUploading(false);
-      setTargetReplaceIdx(null);
-    }
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(true);
-  };
-
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(false);
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(false);
-
-    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      const file = e.dataTransfer.files[0];
-      handleSystemFileUpload(file);
-    }
-  };
-
-  const handleLockAdmin = () => {
-    if (typeof window !== "undefined") {
-      localStorage.removeItem("protosem_admin_authenticated");
-    }
-    setIsAdmin(false);
-  };
-
-  const handleResetWeeks = async () => {
-    if (confirm("Are you sure you want to reset all week edits and restore defaults?")) {
-      await clearCustomWeeksFromDB();
-      setWeeks(forgeWeeksData);
-    }
-  };
-
-  const filteredWeeks = weeks.filter((w) => {
-    const matchesSearch = 
-      w.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      w.summary.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      w.tags.some((t) => t.toLowerCase().includes(searchQuery.toLowerCase()));
-    
-    const matchesCategory = selectedCategory === "All" || w.status === selectedCategory;
-
-    return matchesSearch && matchesCategory;
-  });
-
-  const activeLightboxWeek = activeLightbox !== null 
+  const activeLightboxWeek = activeLightbox
     ? weeks.find((w) => w.weekNumber === activeLightbox.weekNumber)
     : null;
-
-  const currentGalleryItem = activeLightboxWeek && activeLightboxWeek.galleryImages 
-    ? activeLightboxWeek.galleryImages[activeLightbox!.imageIndex]
-    : null;
-
-  const currentLightboxImageUrl = currentGalleryItem
-    ? typeof currentGalleryItem === "string" ? currentGalleryItem : currentGalleryItem.url
-    : "";
-
-  const currentLightboxCaption = currentGalleryItem
-    ? typeof currentGalleryItem === "string" ? `Week ${activeLightboxWeek?.weekNumber} Image` : currentGalleryItem.caption
-    : "";
 
   const handleNextLightboxImage = () => {
     if (!activeLightboxWeek || !activeLightboxWeek.galleryImages) return;
@@ -540,10 +256,80 @@ export default function ForgePage() {
     setTimeout(() => setCopiedCode(null), 2000);
   };
 
+  const handleLockAdmin = () => {
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("protosem_admin_unlocked");
+      setIsAdmin(false);
+    }
+  };
+
+  const handleResetWeeks = async () => {
+    if (confirm("Reset all custom week edits to default content?")) {
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("protosem_custom_weeks_v3");
+        localStorage.removeItem("protosem_custom_weeks_data");
+        try {
+          const db = await getIDB();
+          const tx = db.transaction(STORE_NAME, "readwrite");
+          tx.objectStore(STORE_NAME).clear();
+        } catch {
+          // ignore
+        }
+      }
+      setWeeks(forgeWeeksData);
+    }
+  };
+
+  const handleSaveWeekEdit = async () => {
+    if (!editingWeek) return;
+    setIsSaving(true);
+    setSaveError(null);
+
+    try {
+      const updatedWeeks = weeks.map((w) => (w.weekNumber === editingWeek.weekNumber ? editingWeek : w));
+      setWeeks(updatedWeeks);
+      await saveCustomWeeksToDB(updatedWeeks);
+      setEditingWeek(null);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to save week edits.";
+      setSaveError(msg);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !editingWeek) return;
+
+    const isVid = file.type.startsWith("video/");
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      const base64Url = reader.result as string;
+      const mediaKind: "video" | "image" = isVid ? "video" : "image";
+      const cleanFileName = file.name.replace(/\.[^/.]+$/, "");
+      const caption = cleanFileName
+        .replace(/[-_]/g, " ")
+        .replace(/\b\w/g, (c) => c.toUpperCase());
+
+      const currentGallery = editingWeek.galleryImages || [];
+      const updatedGallery = [
+        ...currentGallery,
+        { url: base64Url, caption, type: mediaKind }
+      ];
+
+      setEditingWeek({ ...editingWeek, galleryImages: updatedGallery });
+    };
+
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
+
   return (
     <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 space-y-10 py-6">
       
-      {/* ADMIN CONTROL BAR (Visible when unlocked via password on contact page) */}
+      {/* ADMIN CONTROL BAR */}
       {isAdmin && (
         <motion.div
           initial={{ opacity: 0, y: -10 }}
@@ -614,7 +400,7 @@ export default function ForgePage() {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search archive by title, topic, or keyword (e.g. 'Arduino', 'Sensors', 'MIT App', 'Fusion 360')..."
+            placeholder="Search archive by title, topic, or keyword (e.g. 'FreeRTOS', 'Arduino', 'Sensors', 'Fusion 360')..."
             className="w-full rounded-xl glass-panel-elevated py-3 pl-11 pr-4 text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-white transition-all border border-white/15"
           />
         </div>
@@ -657,6 +443,7 @@ export default function ForgePage() {
           filteredWeeks.map((week) => {
             const isExpanded = expandedWeek === week.weekNumber;
             const isCompleted = week.status === "Completed";
+            const isWeek7 = week.weekNumber === 7;
 
             return (
               <motion.div
@@ -717,7 +504,6 @@ export default function ForgePage() {
                     </div>
 
                     <div className="flex items-center gap-3 self-end sm:self-center">
-                      {/* EDIT WEEK BUTTON (When Admin is Unlocked) */}
                       {isAdmin && (
                         <button
                           type="button"
@@ -729,7 +515,7 @@ export default function ForgePage() {
                             setActiveEditorTab("general");
                           }}
                           className="flex items-center gap-1.5 rounded-full bg-emerald-500/20 px-3 py-1 text-xs font-mono font-bold text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/40 transition-all shadow-sm"
-                          title="Edit Week Content & Images"
+                          title="Edit Week Content"
                         >
                           <Edit3 className="h-3.5 w-3.5 text-emerald-300" />
                           <span>Edit Week</span>
@@ -742,7 +528,7 @@ export default function ForgePage() {
                           : "bg-amber-500/10 text-amber-300 border-amber-500/30"
                       }`}>
                         {isCompleted ? <CheckCircle2 className="h-3 w-3 text-white" /> : <Clock className="h-3 w-3 text-amber-400" />}
-                        <span>{week.status}</span>
+                        <span>{isCompleted ? `WEEK ${week.weekNumber} — COMPLETED` : week.status}</span>
                       </span>
 
                       <div className="flex h-7 w-7 items-center justify-center rounded-full glass-panel text-white">
@@ -761,123 +547,547 @@ export default function ForgePage() {
                         transition={{ duration: 0.25 }}
                         className="border-t border-white/10 p-5 sm:p-6 space-y-6 bg-black/40"
                       >
-                        {/* SECTION 1: OVERVIEW */}
-                        <div className="space-y-1.5 glass-panel p-4 rounded-xl border border-white/10">
-                          <span className="text-[10px] font-mono text-emerald-400 uppercase tracking-wider font-bold flex items-center gap-1.5">
-                            <BookOpen className="h-3.5 w-3.5 text-emerald-400" />
-                            <span>1. OVERVIEW</span>
-                          </span>
-                          <p className="text-xs sm:text-sm text-neutral-300 leading-relaxed font-sans whitespace-pre-line">
-                            {week.summary}
-                          </p>
-                        </div>
 
-                        {/* SECTION 2: CONCEPTS */}
-                        {week.conceptsLearned && week.conceptsLearned.length > 0 && (
-                          <div className="space-y-2 glass-panel p-4 rounded-xl border border-white/10">
-                            <span className="text-[10px] font-mono text-amber-300 uppercase tracking-wider font-bold flex items-center gap-1.5">
-                              <Lightbulb className="h-3.5 w-3.5 text-amber-400" />
-                              <span>2. CONCEPTS</span>
-                            </span>
-                            <div className="flex flex-wrap gap-1.5">
-                              {week.conceptsLearned.map((concept, idx) => (
-                                <span key={idx} className="rounded-lg bg-amber-500/10 px-2.5 py-1 text-xs font-mono text-amber-200 border border-amber-500/20">
-                                  {concept}
-                                </span>
-                              ))}
+                        {/* =========================================================
+                            WEEK 7 ONLY — NEW 11-SECTION FRAMEWORK
+                           ========================================================= */}
+                        {isWeek7 ? (
+                          <div className="space-y-6">
+
+                            {/* SECTION 1: OVERVIEW */}
+                            <div className="space-y-4 rounded-xl bg-neutral-900/60 p-4 border border-white/15">
+                              <span className="text-[10px] font-mono text-emerald-400 uppercase tracking-wider font-bold flex items-center gap-1.5">
+                                <BookOpen className="h-4 w-4 text-emerald-400" />
+                                <span>1. OVERVIEW</span>
+                              </span>
+                              <p className="text-xs sm:text-sm text-neutral-200 leading-relaxed font-sans whitespace-pre-line">
+                                {week.summary}
+                              </p>
+
+                              {week.objectives && week.objectives.length > 0 && (
+                                <div className="space-y-2 pt-2 border-t border-white/10">
+                                  <span className="text-[10px] font-mono text-neutral-300 uppercase tracking-wider font-bold flex items-center gap-1">
+                                    <Target className="h-3.5 w-3.5 text-white" />
+                                    <span>LEARNING OBJECTIVES</span>
+                                  </span>
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                    {week.objectives.map((obj, idx) => (
+                                      <div key={idx} className="flex items-start gap-2 glass-panel p-2.5 rounded-lg border border-white/10 text-xs text-neutral-300">
+                                        <Check className="h-3.5 w-3.5 text-emerald-400 shrink-0 mt-0.5" />
+                                        <span>{obj}</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+
+                              {week.activitiesCompleted && week.activitiesCompleted.length > 0 && (
+                                <div className="space-y-2 pt-2 border-t border-white/10">
+                                  <span className="text-[10px] font-mono text-neutral-300 uppercase tracking-wider font-bold flex items-center gap-1">
+                                    <Sparkles className="h-3.5 w-3.5 text-white" />
+                                    <span>ACTIVITIES COMPLETED</span>
+                                  </span>
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                    {week.activitiesCompleted.map((act, idx) => (
+                                      <div key={idx} className="flex items-start gap-2 glass-panel p-2.5 rounded-lg border border-white/10 text-xs text-neutral-300">
+                                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 mt-1.5 shrink-0" />
+                                        <span>{act}</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
                             </div>
-                          </div>
-                        )}
 
-                        {/* SECTION 3: SYSTEM DESIGN */}
-                        {week.systemDesign && (
-                          <div className="space-y-3 glass-panel p-4 rounded-xl border border-white/10">
-                            <span className="text-[10px] font-mono text-cyan-400 uppercase tracking-wider font-bold flex items-center gap-1.5">
-                              <Layers className="h-3.5 w-3.5 text-cyan-400" />
-                              <span>3. SYSTEM DESIGN</span>
-                            </span>
-                            <pre className="rounded-xl bg-black/90 p-4 overflow-x-auto text-[11px] font-mono text-cyan-300 border border-cyan-500/20 leading-tight">
-                              <code>{week.systemDesign.diagram}</code>
-                            </pre>
-                            <p className="text-xs text-neutral-300 leading-relaxed font-sans">
-                              {week.systemDesign.explanation}
-                            </p>
-                          </div>
-                        )}
-
-                        {/* SECTION 4: HARDWARE & SOFTWARE TABLE */}
-                        {week.hardwareSoftware && week.hardwareSoftware.length > 0 && (
-                          <div className="space-y-3 glass-panel p-4 rounded-xl border border-white/10">
-                            <span className="text-[10px] font-mono text-purple-400 uppercase tracking-wider font-bold flex items-center gap-1.5">
-                              <Cpu className="h-3.5 w-3.5 text-purple-400" />
-                              <span>4. HARDWARE & SOFTWARE</span>
-                            </span>
-                            <div className="overflow-x-auto rounded-xl border border-white/10">
-                              <table className="w-full text-left text-xs font-sans">
-                                <thead className="bg-white/10 font-mono text-[10px] text-white uppercase">
-                                  <tr>
-                                    <th className="p-2.5">Component / Tool</th>
-                                    <th className="p-2.5">Type</th>
-                                    <th className="p-2.5">Purpose & Role</th>
-                                  </tr>
-                                </thead>
-                                <tbody className="divide-y divide-white/10 text-neutral-300 bg-black/30">
-                                  {week.hardwareSoftware.map((item, idx) => (
-                                    <tr key={idx} className="hover:bg-white/5 transition-colors">
-                                      <td className="p-2.5 font-semibold text-white font-mono">{item.name}</td>
-                                      <td className="p-2.5 font-mono">
-                                        <span className="rounded bg-white/10 px-2 py-0.5 text-[9px] text-purple-300 border border-purple-500/30">
-                                          {item.type}
-                                        </span>
-                                      </td>
-                                      <td className="p-2.5 text-neutral-300">{item.purpose}</td>
-                                    </tr>
+                            {/* SECTION 2: CONCEPTS */}
+                            <div className="space-y-3 rounded-xl glass-panel p-4 border border-white/15">
+                              <span className="text-[10px] font-mono text-emerald-400 uppercase tracking-wider font-bold flex items-center gap-1.5">
+                                <Lightbulb className="h-4 w-4 text-emerald-400" />
+                                <span>2. CONCEPTS</span>
+                              </span>
+                              {week.conceptsLearned && (
+                                <div className="flex flex-wrap gap-1.5">
+                                  {week.conceptsLearned.map((concept, idx) => (
+                                    <span key={idx} className="rounded-lg bg-emerald-500/10 px-2.5 py-1 text-xs font-mono text-emerald-300 border border-emerald-500/20">
+                                      {concept}
+                                    </span>
                                   ))}
-                                </tbody>
-                              </table>
+                                </div>
+                              )}
                             </div>
-                          </div>
-                        )}
 
-                        {/* SECTION 5: WIRING / SETUP */}
-                        {week.wiringSetup && (
-                          <div className="space-y-3 glass-panel p-4 rounded-xl border border-white/10">
-                            <span className="text-[10px] font-mono text-emerald-400 uppercase tracking-wider font-bold flex items-center gap-1.5">
-                              <Wrench className="h-3.5 w-3.5 text-emerald-400" />
-                              <span>5. WIRING / SETUP</span>
-                            </span>
-                            <p className="text-xs text-neutral-300 leading-relaxed font-sans">
-                              {week.wiringSetup.description}
-                            </p>
-                            {week.wiringSetup.diagram && (
-                              <pre className="rounded-xl bg-black/90 p-4 overflow-x-auto text-[11px] font-mono text-emerald-300 border border-emerald-500/20 leading-tight">
-                                <code>{week.wiringSetup.diagram}</code>
-                              </pre>
-                            )}
-                            {week.wiringSetup.image && (
-                              <div className="relative aspect-video max-h-72 w-full overflow-hidden rounded-xl border border-white/15 bg-black">
-                                <img src={week.wiringSetup.image} alt="Hardware Wiring Setup" className="h-full w-full object-cover" />
+                            {/* SECTION 3: SYSTEM DESIGN */}
+                            {week.systemDesign && (
+                              <div className="space-y-3 rounded-xl glass-panel p-4 border border-white/15">
+                                <span className="text-[10px] font-mono text-emerald-400 uppercase tracking-wider font-bold flex items-center gap-1.5">
+                                  <Cpu className="h-4 w-4 text-emerald-400" />
+                                  <span>3. SYSTEM DESIGN</span>
+                                </span>
+                                <pre className="rounded-xl bg-black p-4 overflow-x-auto text-[11px] font-mono text-emerald-300 border border-emerald-500/30 leading-relaxed shadow-inner">
+                                  <code>{week.systemDesign.diagram}</code>
+                                </pre>
+                                <p className="text-xs text-neutral-300 leading-relaxed font-sans pt-1">
+                                  {week.systemDesign.explanation}
+                                </p>
                               </div>
                             )}
-                          </div>
-                        )}
 
-                        {/* SECTION 6: IMPLEMENTATION */}
-                        {(week.implementationDetails || week.codeSnippet) && (
-                          <div className="space-y-3 glass-panel p-4 rounded-xl border border-white/10">
-                            <span className="text-[10px] font-mono text-blue-400 uppercase tracking-wider font-bold flex items-center gap-1.5">
-                              <Code className="h-3.5 w-3.5 text-blue-400" />
-                              <span>6. IMPLEMENTATION</span>
-                            </span>
-                            {week.implementationDetails && (
-                              <p className="text-xs text-neutral-300 leading-relaxed font-sans">
-                                {week.implementationDetails}
-                              </p>
+                            {/* SECTION 4: HARDWARE & SOFTWARE */}
+                            {week.hardwareSoftware && week.hardwareSoftware.length > 0 && (
+                              <div className="space-y-3 rounded-xl glass-panel p-4 border border-white/15">
+                                <span className="text-[10px] font-mono text-emerald-400 uppercase tracking-wider font-bold flex items-center gap-1.5">
+                                  <Layers className="h-4 w-4 text-emerald-400" />
+                                  <span>4. HARDWARE & SOFTWARE</span>
+                                </span>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                                  {week.hardwareSoftware.map((item, idx) => (
+                                    <div key={idx} className="glass-panel p-3 rounded-lg border border-white/10 flex flex-col justify-between space-y-1">
+                                      <div className="flex items-center justify-between">
+                                        <span className="font-semibold text-xs text-white">{item.name}</span>
+                                        <span className={`px-2 py-0.5 rounded text-[9px] font-mono font-bold ${
+                                          item.type === "Hardware" ? "bg-amber-500/20 text-amber-300 border border-amber-500/30" :
+                                          item.type === "Software" ? "bg-blue-500/20 text-blue-300 border border-blue-500/30" :
+                                          "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                                        }`}>
+                                          {item.type}
+                                        </span>
+                                      </div>
+                                      <p className="text-[11px] text-neutral-400">{item.purpose}</p>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
                             )}
+
+                            {/* SECTION 5: WIRING / SETUP */}
+                            {week.wiringSetup && (
+                              <div className="space-y-3 rounded-xl glass-panel p-4 border border-white/15">
+                                <span className="text-[10px] font-mono text-emerald-400 uppercase tracking-wider font-bold flex items-center gap-1.5">
+                                  <Wrench className="h-4 w-4 text-emerald-400" />
+                                  <span>5. WIRING / SETUP</span>
+                                </span>
+                                {week.wiringSetup.diagram && (
+                                  <pre className="rounded-xl bg-black p-4 overflow-x-auto text-[11px] font-mono text-emerald-400 border border-white/15 leading-relaxed">
+                                    <code>{week.wiringSetup.diagram}</code>
+                                  </pre>
+                                )}
+                                <p className="text-xs text-neutral-300 leading-relaxed font-sans">
+                                  {week.wiringSetup.description}
+                                </p>
+                              </div>
+                            )}
+
+                            {/* SECTION 6: IMPLEMENTATION */}
+                            <div className="space-y-3 rounded-xl glass-panel p-4 border border-white/15">
+                              <span className="text-[10px] font-mono text-emerald-400 uppercase tracking-wider font-bold flex items-center gap-1.5">
+                                <Code className="h-4 w-4 text-emerald-400" />
+                                <span>6. IMPLEMENTATION</span>
+                              </span>
+                              {week.implementationDetails && (
+                                <p className="text-xs text-neutral-300 leading-relaxed font-sans">
+                                  {week.implementationDetails}
+                                </p>
+                              )}
+                              {week.codeSnippet && (
+                                <div className="space-y-2 pt-2">
+                                  <div className="flex items-center justify-between text-[10px] font-mono">
+                                    <span className="text-white uppercase flex items-center gap-1 font-bold">
+                                      <FileCode className="h-3.5 w-3.5 text-emerald-400" />
+                                      <span>{week.codeSnippet.filename}</span>
+                                    </span>
+                                    <button
+                                      onClick={() => handleCopyCode(week.codeSnippet!.code)}
+                                      className="flex items-center gap-1 rounded bg-neutral-900 px-2 py-0.5 text-neutral-300 hover:text-white transition-colors border border-white/15"
+                                    >
+                                      {copiedCode === week.codeSnippet.code ? (
+                                        <>
+                                          <Check className="h-3 w-3 text-emerald-400" />
+                                          <span className="text-emerald-400">Copied</span>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <Copy className="h-3 w-3" />
+                                          <span>Copy Code</span>
+                                        </>
+                                      )}
+                                    </button>
+                                  </div>
+                                  <pre className="rounded-xl bg-black p-3.5 overflow-x-auto text-[11px] font-mono text-neutral-300 border border-white/15">
+                                    <code>{week.codeSnippet.code}</code>
+                                  </pre>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* SECTION 7: CONFIGURATION */}
+                            {week.configurationDetails && (
+                              <div className="space-y-3 rounded-xl glass-panel p-4 border border-white/15">
+                                <span className="text-[10px] font-mono text-emerald-400 uppercase tracking-wider font-bold flex items-center gap-1.5">
+                                  <Settings className="h-4 w-4 text-emerald-400" />
+                                  <span>7. CONFIGURATION</span>
+                                </span>
+                                <p className="text-xs text-neutral-300 leading-relaxed font-sans font-mono bg-black/40 p-3 rounded-lg border border-white/10">
+                                  {week.configurationDetails}
+                                </p>
+                              </div>
+                            )}
+
+                            {/* SECTION 8: EVIDENCE */}
+                            <div className="space-y-4 rounded-xl glass-panel p-4 border border-white/15">
+                              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/10 pb-3">
+                                <span className="text-[10px] font-mono text-emerald-400 uppercase tracking-wider font-bold flex items-center gap-1.5">
+                                  <ImageIcon className="h-4 w-4 text-emerald-400" />
+                                  <span>8. EVIDENCE</span>
+                                </span>
+                                <span className="text-[10px] font-mono text-amber-300 bg-amber-500/10 border border-amber-500/30 px-2.5 py-0.5 rounded-md flex items-center gap-1 w-fit">
+                                  <Upload className="h-3 w-3 text-amber-400 shrink-0" />
+                                  <span>4 Evidence Media Cards (User Upload Pending)</span>
+                                </span>
+                              </div>
+
+                              {week.evidenceList && week.evidenceList.length > 0 && (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                  {week.evidenceList.map((ev, idx) => {
+                                    const isVid = isVideoUrl(ev.mediaUrl, ev.type);
+                                    return (
+                                      <div key={idx} className="glass-panel p-4 rounded-xl border border-white/15 space-y-3 bg-black/50 flex flex-col justify-between">
+                                        <div className="space-y-2.5">
+                                          <div className="flex items-start justify-between gap-2">
+                                            <h4 className="font-semibold text-xs text-white font-sans leading-snug">
+                                              Evidence {idx + 1} — {ev.title}
+                                            </h4>
+                                            <span className="px-2 py-0.5 rounded bg-white/10 text-[9px] font-mono text-neutral-300 border border-white/15 shrink-0">
+                                              {isVid ? "VIDEO" : "IMAGE"}
+                                            </span>
+                                          </div>
+
+                                          <div className="flex items-center justify-between text-[10px] font-mono text-neutral-400 bg-neutral-950 px-3 py-1.5 rounded-lg border border-white/10">
+                                            <span className="text-emerald-400 font-bold flex items-center gap-1 truncate">
+                                              <FileCode className="h-3 w-3 text-emerald-400 shrink-0" />
+                                              <span>Required File: {ev.filename}</span>
+                                            </span>
+                                            <span className="text-[9px] text-neutral-500 font-mono">
+                                              public/img/week-7/
+                                            </span>
+                                          </div>
+
+                                          {/* Upload Instruction Placeholder Container */}
+                                          <div className="relative aspect-video w-full rounded-xl bg-neutral-950 border border-dashed border-emerald-500/30 flex flex-col items-center justify-center p-4 text-center space-y-2">
+                                            <div className="h-9 w-9 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                                              <Upload className="h-4 w-4" />
+                                            </div>
+                                            <div className="space-y-1">
+                                              <p className="text-xs font-mono text-emerald-300 font-semibold">
+                                                Upload Target: {ev.filename}
+                                              </p>
+                                              <p className="text-[10px] text-neutral-400 font-mono">
+                                                Place file in <code className="text-neutral-200 bg-neutral-900 px-1 py-0.5 rounded">public/img/week-7/{ev.filename}</code>
+                                              </p>
+                                            </div>
+                                          </div>
+                                        </div>
+
+                                        {/* Explanation */}
+                                        <p className="text-xs text-neutral-300 leading-relaxed font-sans pt-1">
+                                          {ev.explanation}
+                                        </p>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </div>
+
+                            {/* SECTION 9: CHALLENGES & FIXES */}
+                            {week.challengesFixesList && week.challengesFixesList.length > 0 && (
+                              <div className="space-y-3 rounded-xl bg-amber-950/20 p-4 border border-amber-500/20">
+                                <span className="text-[10px] font-mono text-amber-300 uppercase tracking-wider font-bold flex items-center gap-1.5">
+                                  <AlertTriangle className="h-4 w-4 text-amber-400" />
+                                  <span>9. CHALLENGES & FIXES</span>
+                                </span>
+                                <div className="space-y-3">
+                                  {week.challengesFixesList.map((cf, idx) => (
+                                    <div key={idx} className="space-y-1.5 glass-panel p-3.5 rounded-lg border border-amber-500/30 bg-black/60 text-xs">
+                                      <p className="font-semibold text-amber-300 font-sans">
+                                        <span className="font-mono uppercase text-[10px] text-amber-400 font-bold">Challenge: </span>
+                                        {cf.challenge}
+                                      </p>
+                                      <p className="text-neutral-300 font-sans">
+                                        <span className="font-mono uppercase text-[10px] text-emerald-400 font-bold">Fix: </span>
+                                        {cf.fix}
+                                      </p>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* SECTION 10: REFLECTION */}
+                            {week.reflection && (
+                              <div className="space-y-2 rounded-xl bg-neutral-900 p-4 border border-white/20">
+                                <span className="text-[10px] font-mono text-white uppercase tracking-wider font-bold flex items-center gap-1.5">
+                                  <Compass className="h-4 w-4 text-emerald-400" />
+                                  <span>10. REFLECTION</span>
+                                </span>
+                                <p className="text-xs text-neutral-200 italic leading-relaxed font-serif">
+                                  "{week.reflection}"
+                                </p>
+                              </div>
+                            )}
+
+                            {/* SECTION 11: REPOSITORY LINK */}
+                            {week.repoLink && (
+                              <div className="space-y-2 glass-panel p-4 rounded-xl border border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3 bg-emerald-950/20">
+                                <div className="space-y-0.5">
+                                  <span className="text-[10px] font-mono text-emerald-400 uppercase tracking-wider font-bold flex items-center gap-1.5">
+                                    <FolderGit2 className="h-4 w-4 text-emerald-400" />
+                                    <span>11. REPOSITORY LINK</span>
+                                  </span>
+                                  <p className="text-xs text-neutral-300 font-sans">
+                                    Verified source code repository for FreeRTOS & ESP32 SPI Datalogger implementation.
+                                  </p>
+                                </div>
+                                <a
+                                  href={week.repoLink}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-xs font-mono font-bold text-black hover:bg-neutral-200 transition-all shrink-0 shadow-md"
+                                >
+                                  <span>View Code Repository</span>
+                                  <ExternalLink className="h-3.5 w-3.5" />
+                                </a>
+                              </div>
+                            )}
+
+                          </div>
+                        ) : (
+
+                          /* =========================================================
+                              WEEKS 0–6 (AND OTHERS) — ORIGINAL / PREVIOUS FORMAT
+                             ========================================================= */
+                          <div className="space-y-6">
+
+                            {/* Summary / Overview */}
+                            <div className="space-y-1">
+                              <span className="text-[10px] font-mono text-white uppercase tracking-wider font-bold">OVERVIEW</span>
+                              <div className="text-xs sm:text-sm text-neutral-300 leading-relaxed font-sans space-y-3 whitespace-pre-line">
+                                {week.summary}
+                              </div>
+                            </div>
+
+                            {/* Objectives Checklist */}
+                            {week.objectives && week.objectives.length > 0 && (
+                              <div className="space-y-2">
+                                <span className="text-[10px] font-mono text-white uppercase tracking-wider font-bold flex items-center gap-1">
+                                  <Target className="h-3.5 w-3.5 text-white" />
+                                  <span>OBJECTIVES</span>
+                                </span>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                  {week.objectives.map((obj, idx) => (
+                                    <div key={idx} className="flex items-start gap-2 glass-panel p-2.5 rounded-lg border border-white/10 text-xs text-neutral-300">
+                                      <Check className="h-3.5 w-3.5 text-white shrink-0 mt-0.5" />
+                                      <span>{obj}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Activities Completed */}
+                            {week.activitiesCompleted && week.activitiesCompleted.length > 0 && (
+                              <div className="space-y-2">
+                                <span className="text-[10px] font-mono text-white uppercase tracking-wider font-bold flex items-center gap-1">
+                                  <Sparkles className="h-3.5 w-3.5 text-white" />
+                                  <span>ACTIVITIES COMPLETED</span>
+                                </span>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                  {week.activitiesCompleted.map((act, idx) => (
+                                    <div key={idx} className="flex items-start gap-2 glass-panel p-2.5 rounded-lg border border-white/10 text-xs text-neutral-300">
+                                      <span className="h-1.5 w-1.5 rounded-full bg-white mt-1.5 shrink-0" />
+                                      <span>{act}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* MEDIA & VIDEO GALLERY */}
+                            {week.galleryImages && week.galleryImages.length > 0 && (
+                              <div className="space-y-3 pt-2">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-[10px] font-mono text-white uppercase tracking-wider font-bold flex items-center gap-1.5">
+                                    <ImageIcon className="h-3.5 w-3.5 text-white" />
+                                    <span>MEDIA & VIDEO GALLERY ({week.galleryImages.length} ITEMS)</span>
+                                  </span>
+                                  <span className="text-[10px] font-mono text-neutral-400">Click to expand</span>
+                                </div>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                                  {week.galleryImages.map((imgItem, imgIdx) => {
+                                    const url = typeof imgItem === "string" ? imgItem : imgItem.url;
+                                    const caption = typeof imgItem === "string" ? `Week ${week.weekNumber} Media ${imgIdx + 1}` : imgItem.caption;
+                                    const itemType = typeof imgItem === "string" ? undefined : imgItem.type;
+                                    const isVid = isVideoUrl(url, itemType);
+
+                                    return (
+                                      <motion.div
+                                        key={imgIdx}
+                                        whileHover={{ scale: 1.02 }}
+                                        onClick={() => setActiveLightbox({ weekNumber: week.weekNumber, imageIndex: imgIdx })}
+                                        className="group relative cursor-pointer overflow-hidden rounded-xl glass-panel p-2 border border-white/15 hover:border-white/40 transition-all bg-black/60 shadow-md flex flex-col justify-between"
+                                      >
+                                        <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-neutral-950">
+                                          {isVid ? (
+                                            <video
+                                              src={url}
+                                              muted
+                                              playsInline
+                                              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                            />
+                                          ) : (
+                                            <img
+                                              src={url}
+                                              alt={caption}
+                                              loading="lazy"
+                                              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                            />
+                                          )}
+                                          {isVid && (
+                                            <div className="absolute top-2 right-2 px-2 py-0.5 rounded-md bg-black/70 backdrop-blur-md text-[9px] font-mono font-bold text-amber-300 border border-amber-500/40 flex items-center gap-1 z-10">
+                                              <Video className="h-3 w-3" />
+                                              <span>VIDEO</span>
+                                            </div>
+                                          )}
+                                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/20 backdrop-blur-md text-white border border-white/30 shadow-lg">
+                                              {isVid ? <Play className="h-5 w-5 fill-white text-white ml-0.5" /> : <Maximize2 className="h-4 w-4" />}
+                                            </div>
+                                          </div>
+                                        </div>
+                                        <div className="pt-2 px-1 flex items-center justify-between gap-1">
+                                          <p className="text-[11px] text-neutral-300 font-sans line-clamp-2 leading-snug group-hover:text-white transition-colors">
+                                            {caption}
+                                          </p>
+                                          {isVid && <Film className="h-3.5 w-3.5 text-amber-400 shrink-0" />}
+                                        </div>
+                                      </motion.div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Challenges Faced */}
+                            {week.challengesFaced && (
+                              <div className="space-y-2 rounded-xl bg-amber-950/20 p-4 border border-amber-500/20">
+                                <span className="text-[10px] font-mono text-amber-300 uppercase tracking-wider font-bold flex items-center gap-1">
+                                  <AlertTriangle className="h-3.5 w-3.5 text-amber-400" />
+                                  <span>CHALLENGES FACED</span>
+                                </span>
+                                <p className="text-xs text-neutral-300 leading-relaxed font-sans">
+                                  {week.challengesFaced}
+                                </p>
+                              </div>
+                            )}
+
+                            {/* Skills & Concepts Learned */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                              {week.skillsGained && (
+                                <div className="space-y-2 glass-panel p-3.5 rounded-xl border border-white/10">
+                                  <span className="text-[10px] font-mono text-white uppercase tracking-wider block font-bold">SKILLS DEVELOPED</span>
+                                  <div className="flex flex-wrap gap-1">
+                                    {week.skillsGained.map((skill) => (
+                                      <span key={skill} className="rounded bg-white/10 px-2 py-0.5 text-[10px] font-mono text-neutral-200 border border-white/15">
+                                        {skill}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+
+                              {week.conceptsLearned && (
+                                <div className="space-y-2 glass-panel p-3.5 rounded-xl border border-white/10">
+                                  <span className="text-[10px] font-mono text-white uppercase tracking-wider block font-bold">CONCEPTS LEARNED</span>
+                                  <div className="flex flex-wrap gap-1">
+                                    {week.conceptsLearned.map((concept) => (
+                                      <span key={concept} className="rounded bg-white/10 px-2 py-0.5 text-[10px] font-mono text-neutral-200 border border-white/15">
+                                        {concept}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Key Learnings */}
+                            {week.keyLearnings && (
+                              <div className="space-y-2 rounded-xl bg-neutral-900/80 p-4 border border-white/15">
+                                <span className="text-[10px] font-mono text-white uppercase tracking-wider font-bold flex items-center gap-1">
+                                  <Lightbulb className="h-3.5 w-3.5 text-white" />
+                                  <span>KEY LEARNINGS</span>
+                                </span>
+                                <p className="text-xs text-neutral-300 leading-relaxed font-sans">
+                                  {week.keyLearnings}
+                                </p>
+                              </div>
+                            )}
+
+                            {/* Reflection */}
+                            {week.reflection && (
+                              <div className="space-y-2 rounded-xl bg-neutral-900 p-4 border border-white/20">
+                                <span className="text-[10px] font-mono text-white uppercase tracking-wider font-bold flex items-center gap-1">
+                                  <Compass className="h-3.5 w-3.5 text-white" />
+                                  <span>WEEK REFLECTION</span>
+                                </span>
+                                <p className="text-xs text-neutral-200 italic leading-relaxed font-serif">
+                                  "{week.reflection}"
+                                </p>
+                              </div>
+                            )}
+
+                            {/* Deliverables & Contributor Credits */}
+                            {week.deliverables && week.deliverables.length > 0 && (
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+                                <div className="space-y-2 glass-panel p-4 rounded-xl border border-white/10">
+                                  <div className="flex items-center gap-1.5 text-[10px] font-mono text-white uppercase font-bold">
+                                    <FileText className="h-3.5 w-3.5" />
+                                    <span>DELIVERABLES ({week.deliverables.length})</span>
+                                  </div>
+                                  <ul className="space-y-1.5">
+                                    {week.deliverables.map((d, idx) => (
+                                      <li key={idx} className="flex items-center justify-between text-xs text-neutral-300">
+                                        <span>{d.title}</span>
+                                        <span className="rounded bg-white/10 px-1.5 py-0.2 text-[9px] font-mono text-white border border-white/15">
+                                          {d.type}
+                                        </span>
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+
+                                {week.teamCredits && (
+                                  <div className="space-y-2 glass-panel p-4 rounded-xl border border-white/10">
+                                    <div className="flex items-center gap-1.5 text-[10px] font-mono text-white uppercase font-bold">
+                                      <Users className="h-3.5 w-3.5" />
+                                      <span>CONTRIBUTOR CREDITS</span>
+                                    </div>
+                                    <ul className="space-y-1.5">
+                                      {week.teamCredits.map((c, idx) => (
+                                        <li key={idx} className="flex items-center justify-between text-xs text-neutral-300">
+                                          <span className="text-neutral-500">{c.role}</span>
+                                          <span className="font-semibold text-white">{c.name}</span>
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+
+                            {/* Code Snippet */}
                             {week.codeSnippet && (
-                              <div className="space-y-2 pt-1">
+                              <div className="space-y-2">
                                 <div className="flex items-center justify-between text-[10px] font-mono">
-                                  <span className="text-blue-300 uppercase flex items-center gap-1 font-bold">
+                                  <span className="text-white uppercase flex items-center gap-1 font-bold">
                                     <Code className="h-3.5 w-3.5" />
                                     <span>{week.codeSnippet.filename}</span>
                                   </span>
@@ -903,276 +1113,19 @@ export default function ForgePage() {
                                 </pre>
                               </div>
                             )}
-                          </div>
-                        )}
 
-                        {/* SECTION 7: CONFIGURATION */}
-                        {week.configurationDetails && (
-                          <div className="space-y-2 glass-panel p-4 rounded-xl border border-white/10">
-                            <span className="text-[10px] font-mono text-teal-400 uppercase tracking-wider font-bold flex items-center gap-1.5">
-                              <Settings className="h-3.5 w-3.5 text-teal-400" />
-                              <span>7. CONFIGURATION</span>
-                            </span>
-                            <p className="text-xs text-neutral-300 leading-relaxed font-sans">
-                              {week.configurationDetails}
-                            </p>
-                          </div>
-                        )}
-
-                        {/* SECTION 8: EVIDENCE */}
-                        {((week.evidenceList && week.evidenceList.length > 0) || (week.galleryImages && week.galleryImages.length > 0)) && (
-                          <div className="space-y-4 pt-2">
-                            <div className="flex items-center justify-between">
-                              <span className="text-[10px] font-mono text-emerald-300 uppercase tracking-wider font-bold flex items-center gap-1.5">
-                                <ImageIcon className="h-3.5 w-3.5 text-emerald-400" />
-                                <span>8. EVIDENCE ({week.evidenceList?.length || week.galleryImages?.length || 0} ITEMS)</span>
-                              </span>
-                              <span className="text-[10px] font-mono text-neutral-400">Click to expand</span>
-                            </div>
-
-                            {/* Detailed Evidence Cards */}
-                            {week.evidenceList && week.evidenceList.length > 0 ? (
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {week.evidenceList.map((ev, evIdx) => {
-                                  const isVid = isVideoUrl(ev.mediaUrl, ev.type);
-                                  return (
-                                    <div key={evIdx} className="glass-panel p-3.5 rounded-xl border border-white/15 bg-black/60 space-y-2.5 flex flex-col justify-between">
-                                      <div className="space-y-1">
-                                        <h4 className="text-xs font-bold text-white font-serif flex items-center gap-1.5">
-                                          {isVid ? <Film className="h-3.5 w-3.5 text-amber-400 shrink-0" /> : <ImageIcon className="h-3.5 w-3.5 text-emerald-400 shrink-0" />}
-                                          <span>{ev.title}</span>
-                                        </h4>
-                                        <p className="text-[11px] text-neutral-300 font-sans leading-relaxed">
-                                          {ev.explanation}
-                                        </p>
-                                      </div>
-
-                                      <div
-                                        onClick={() => {
-                                          const gIdx = (week.galleryImages || []).findIndex(
-                                            (g) => (typeof g === "string" ? g : g.url) === ev.mediaUrl
-                                          );
-                                          setActiveLightbox({ weekNumber: week.weekNumber, imageIndex: gIdx >= 0 ? gIdx : 0 });
-                                        }}
-                                        className="relative aspect-video w-full overflow-hidden rounded-lg bg-neutral-950 cursor-pointer group border border-white/10"
-                                      >
-                                        {isVid ? (
-                                          <video src={ev.mediaUrl} muted playsInline className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
-                                        ) : (
-                                          <img src={ev.mediaUrl} alt={ev.title} loading="lazy" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
-                                        )}
-                                        {isVid && (
-                                          <div className="absolute top-2 right-2 px-2 py-0.5 rounded-md bg-black/70 backdrop-blur-md text-[9px] font-mono font-bold text-amber-300 border border-amber-500/40 flex items-center gap-1 z-10">
-                                            <Video className="h-3 w-3" />
-                                            <span>VIDEO</span>
-                                          </div>
-                                        )}
-                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/20 backdrop-blur-md text-white border border-white/30 shadow-lg">
-                                            {isVid ? <Play className="h-5 w-5 fill-white text-white ml-0.5" /> : <Maximize2 className="h-4 w-4" />}
-                                          </div>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            ) : (
-                              /* Standard Gallery Grid */
-                              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                                {week.galleryImages?.map((imgItem, imgIdx) => {
-                                  const url = typeof imgItem === "string" ? imgItem : imgItem.url;
-                                  const caption = typeof imgItem === "string" ? `Week ${week.weekNumber} Media ${imgIdx + 1}` : imgItem.caption;
-                                  const itemType = typeof imgItem === "string" ? undefined : imgItem.type;
-                                  const isVid = isVideoUrl(url, itemType);
-
-                                  return (
-                                    <motion.div
-                                      key={imgIdx}
-                                      whileHover={{ scale: 1.02 }}
-                                      onClick={() => setActiveLightbox({ weekNumber: week.weekNumber, imageIndex: imgIdx })}
-                                      className="group relative cursor-pointer overflow-hidden rounded-xl glass-panel p-2 border border-white/15 hover:border-white/40 transition-all bg-black/60 shadow-md flex flex-col justify-between"
-                                    >
-                                      <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-neutral-950">
-                                        {isVid ? (
-                                          <video src={url} muted playsInline className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
-                                        ) : (
-                                          <img src={url} alt={caption} loading="lazy" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
-                                        )}
-                                        {isVid && (
-                                          <div className="absolute top-2 right-2 px-2 py-0.5 rounded-md bg-black/70 backdrop-blur-md text-[9px] font-mono font-bold text-amber-300 border border-amber-500/40 flex items-center gap-1 z-10">
-                                            <Video className="h-3 w-3" />
-                                            <span>VIDEO</span>
-                                          </div>
-                                        )}
-                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/20 backdrop-blur-md text-white border border-white/30 shadow-lg">
-                                            {isVid ? <Play className="h-5 w-5 fill-white text-white ml-0.5" /> : <Maximize2 className="h-4 w-4" />}
-                                          </div>
-                                        </div>
-                                      </div>
-                                      <div className="pt-2 px-1 flex items-center justify-between gap-1">
-                                        <p className="text-[11px] text-neutral-300 font-sans line-clamp-2 leading-snug group-hover:text-white transition-colors">
-                                          {caption}
-                                        </p>
-                                        {isVid && <Film className="h-3.5 w-3.5 text-amber-400 shrink-0" />}
-                                      </div>
-                                    </motion.div>
-                                  );
-                                })}
-                              </div>
-                            )}
-                          </div>
-                        )}
-
-                        {/* SECTION 9: CHALLENGES & FIXES */}
-                        {(week.challengesFixesList || week.challengesFaced) && (
-                          <div className="space-y-3 rounded-xl bg-amber-950/20 p-4 border border-amber-500/20">
-                            <span className="text-[10px] font-mono text-amber-300 uppercase tracking-wider font-bold flex items-center gap-1">
-                              <AlertTriangle className="h-3.5 w-3.5 text-amber-400" />
-                              <span>9. CHALLENGES & FIXES</span>
-                            </span>
-
-                            {week.challengesFixesList && week.challengesFixesList.length > 0 ? (
-                              <div className="space-y-3">
-                                {week.challengesFixesList.map((cf, idx) => (
-                                  <div key={idx} className="space-y-1 glass-panel p-3 rounded-lg border border-amber-500/30 bg-black/40 text-xs">
-                                    <p className="font-semibold text-amber-300 font-sans">
-                                      <span className="font-mono uppercase text-[10px] text-amber-400 font-bold">Challenge: </span>
-                                      {cf.challenge}
-                                    </p>
-                                    <p className="text-neutral-300 font-sans">
-                                      <span className="font-mono uppercase text-[10px] text-emerald-400 font-bold">Fix: </span>
-                                      {cf.fix}
-                                    </p>
-                                  </div>
-                                ))}
-                              </div>
-                            ) : (
-                              <p className="text-xs text-neutral-300 leading-relaxed font-sans">
-                                {week.challengesFaced}
-                              </p>
-                            )}
-                          </div>
-                        )}
-
-                        {/* SECTION 10: REFLECTION */}
-                        {week.reflection && (
-                          <div className="space-y-2 rounded-xl bg-neutral-900 p-4 border border-white/20">
-                            <span className="text-[10px] font-mono text-white uppercase tracking-wider font-bold flex items-center gap-1">
-                              <Compass className="h-3.5 w-3.5 text-white" />
-                              <span>10. REFLECTION</span>
-                            </span>
-                            <p className="text-xs text-neutral-200 italic leading-relaxed font-serif">
-                              "{week.reflection}"
-                            </p>
-                          </div>
-                        )}
-
-                        {/* SECTION 11: REPOSITORY LINK */}
-                        {week.repoLink && (
-                          <div className="space-y-2 glass-panel p-4 rounded-xl border border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3">
-                            <div className="space-y-0.5">
-                              <span className="text-[10px] font-mono text-emerald-400 uppercase tracking-wider font-bold flex items-center gap-1">
-                                <FolderGit2 className="h-3.5 w-3.5 text-emerald-400" />
-                                <span>11. REPOSITORY LINK</span>
-                              </span>
-                              <p className="text-xs text-neutral-300 font-sans">
-                                Verified source code repository for this assignment.
-                              </p>
-                            </div>
-                            <a
-                              href={week.repoLink}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-xs font-mono font-bold text-black hover:bg-neutral-200 transition-all shrink-0"
-                            >
-                              <span>View Code Repository</span>
-                              <ExternalLink className="h-3.5 w-3.5" />
-                            </a>
-                          </div>
-                        )}
-
-                        {/* Deliverables & Team Credits (if present) */}
-                        {week.deliverables && week.deliverables.length > 0 && (
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
-                            
-                            <div className="space-y-2 glass-panel p-4 rounded-xl border border-white/10">
-                              <div className="flex items-center gap-1.5 text-[10px] font-mono text-white uppercase font-bold">
-                                <FileText className="h-3.5 w-3.5" />
-                                <span>DELIVERABLES ({week.deliverables.length})</span>
-                              </div>
-                              <ul className="space-y-1.5">
-                                {week.deliverables.map((d, idx) => (
-                                  <li key={idx} className="flex items-center justify-between text-xs text-neutral-300">
-                                    <span>{d.title}</span>
-                                    <span className="rounded bg-white/10 px-1.5 py-0.2 text-[9px] font-mono text-white border border-white/15">
-                                      {d.type}
-                                    </span>
-                                  </li>
-                                ))}
-                              </ul>
-                            </div>
-
-                            {week.teamCredits && (
-                              <div className="space-y-2 glass-panel p-4 rounded-xl border border-white/10">
-                                <div className="flex items-center gap-1.5 text-[10px] font-mono text-white uppercase font-bold">
-                                  <Users className="h-3.5 w-3.5" />
-                                  <span>CONTRIBUTOR CREDITS</span>
-                                </div>
-                                <ul className="space-y-1.5">
-                                  {week.teamCredits.map((c, idx) => (
-                                    <li key={idx} className="flex items-center justify-between text-xs text-neutral-300">
-                                      <span className="text-neutral-500">{c.role}</span>
-                                      <span className="font-semibold text-white">{c.name}</span>
-                                    </li>
-                                  ))}
-                                </ul>
-                              </div>
-                            )}
-
-                          </div>
-                        )}
-
-                        {/* Optional Code Snippet */}
-                        {week.codeSnippet && (
-                          <div className="space-y-2">
-                            <div className="flex items-center justify-between text-[10px] font-mono">
-                              <span className="text-white uppercase flex items-center gap-1 font-bold">
-                                <Code className="h-3.5 w-3.5" />
-                                <span>{week.codeSnippet.filename}</span>
-                              </span>
-                              <button
-                                onClick={() => handleCopyCode(week.codeSnippet!.code)}
-                                className="flex items-center gap-1 rounded bg-neutral-900 px-2 py-0.5 text-neutral-300 hover:text-white transition-colors border border-white/15"
-                              >
-                                {copiedCode === week.codeSnippet.code ? (
-                                  <>
-                                    <Check className="h-3 w-3 text-white" />
-                                    <span className="text-white">Copied</span>
-                                  </>
-                                ) : (
-                                  <>
-                                    <Copy className="h-3 w-3" />
-                                    <span>Copy Code</span>
-                                  </>
-                                )}
-                              </button>
-                            </div>
-                            <pre className="rounded-xl bg-black p-3.5 overflow-x-auto text-[11px] font-mono text-neutral-300 border border-white/15">
-                              <code>{week.codeSnippet.code}</code>
-                            </pre>
                           </div>
                         )}
 
                         {/* Tags */}
-                        <div className="flex flex-wrap gap-1 pt-1 border-t border-white/10">
+                        <div className="flex flex-wrap gap-1 pt-2 border-t border-white/10">
                           {week.tags.map((t) => (
                             <span key={t} className="rounded bg-neutral-900 px-2 py-0.2 text-[9px] font-mono text-neutral-400 border border-white/10">
                               #{t}
                             </span>
                           ))}
                         </div>
+
                       </motion.div>
                     )}
                   </AnimatePresence>
@@ -1213,644 +1166,189 @@ export default function ForgePage() {
               <ChevronRight className="h-6 w-6" />
             </button>
 
-            {(() => {
-              const itemType = typeof currentGalleryItem === "string" ? undefined : currentGalleryItem?.type;
-              const isVid = isVideoUrl(currentLightboxImageUrl, itemType);
+            {activeLightboxWeek && activeLightboxWeek.galleryImages && (
+              <div className="max-w-4xl w-full flex flex-col items-center justify-center space-y-4">
+                {(() => {
+                  const currentItem = activeLightboxWeek.galleryImages[activeLightbox.imageIndex];
+                  const url = typeof currentItem === "string" ? currentItem : currentItem.url;
+                  const caption = typeof currentItem === "string" ? `Week ${activeLightboxWeek.weekNumber} Media` : currentItem.caption;
+                  const itemType = typeof currentItem === "string" ? undefined : currentItem.type;
+                  const isVid = isVideoUrl(url, itemType);
 
-              return (
-                <div className="max-w-4xl w-full space-y-4 text-center">
-                  <div className="relative inline-block overflow-hidden rounded-2xl glass-panel-elevated p-3 border border-white/25 shadow-2xl max-h-[75vh]">
-                    {isVid ? (
-                      <video
-                        src={currentLightboxImageUrl}
-                        controls
-                        autoPlay
-                        className="max-h-[70vh] max-w-full rounded-xl mx-auto shadow-2xl"
-                      />
-                    ) : (
-                      <img
-                        src={currentLightboxImageUrl}
-                        alt={currentLightboxCaption}
-                        className="max-h-[70vh] max-w-full object-contain rounded-xl mx-auto"
-                      />
-                    )}
-                  </div>
-                  <div className="space-y-1 max-w-xl mx-auto">
-                    <p className="text-sm font-semibold text-white flex items-center justify-center gap-2">
-                      {isVid && <Video className="h-4 w-4 text-amber-400" />}
-                      <span>{currentLightboxCaption}</span>
-                    </p>
-                    <p className="text-xs font-mono text-neutral-400">
-                      Week {activeLightboxWeek?.weekNumber} • Item {activeLightbox.imageIndex + 1} of {activeLightboxWeek?.galleryImages?.length} {isVid ? "(Video)" : "(Image)"}
-                    </p>
-                  </div>
-                </div>
-              );
-            })()}
+                  return (
+                    <>
+                      <div className="relative max-h-[75vh] w-full flex items-center justify-center overflow-hidden rounded-2xl glass-panel border border-white/20 bg-black/80">
+                        {isVid ? (
+                          <video src={url} controls autoPlay className="max-h-[75vh] w-auto max-w-full rounded-xl object-contain" />
+                        ) : (
+                          <img src={url} alt={caption} className="max-h-[75vh] w-auto max-w-full rounded-xl object-contain" />
+                        )}
+                      </div>
+                      <div className="text-center space-y-1">
+                        <p className="text-sm font-sans text-white font-medium">{caption}</p>
+                        <p className="text-xs font-mono text-neutral-400">
+                          {activeLightbox.imageIndex + 1} of {activeLightboxWeek.galleryImages.length}
+                        </p>
+                      </div>
+                    </>
+                  );
+                })()}
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* WEEK EDITOR MODAL (INTERACTIVE CONTENT & GALLERY MANAGER) */}
+      {/* ADMIN EDIT MODAL */}
       <AnimatePresence>
         {editingWeek && (
-          <div
-            data-lenis-prevent
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-xl overflow-y-auto"
-          >
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 overflow-y-auto">
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileUpload}
+              accept="image/*,video/*,.mp4,.webm,.ogg,.mov"
+              className="hidden"
+            />
+
             <motion.div
-              data-lenis-prevent
-              initial={{ opacity: 0, scale: 0.95, y: 15 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 15 }}
-              className="relative w-full max-w-3xl rounded-3xl glass-panel-elevated p-6 sm:p-8 border border-white/20 shadow-2xl space-y-6 bg-neutral-900 my-auto max-h-[85vh] overflow-y-auto"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="w-full max-w-3xl glass-panel-elevated rounded-2xl border border-emerald-500/40 bg-neutral-950 p-6 space-y-6 shadow-2xl my-8 max-h-[90vh] overflow-y-auto"
             >
-              {/* Modal Header */}
               <div className="flex items-center justify-between border-b border-white/10 pb-4">
-                <div className="flex items-center gap-2 text-white font-mono text-base font-bold">
+                <div className="flex items-center gap-2">
                   <Edit3 className="h-5 w-5 text-emerald-400" />
-                  <span>Edit Week {editingWeek.weekNumber} Content & Media</span>
+                  <h3 className="font-serif text-lg font-bold text-white">
+                    Edit Week {editingWeek.weekNumber} Content
+                  </h3>
                 </div>
                 <button
                   onClick={() => setEditingWeek(null)}
-                  className="rounded-full p-1.5 text-neutral-400 hover:text-white hover:bg-neutral-800 transition-all"
+                  className="rounded-full glass-panel p-1.5 text-neutral-400 hover:text-white"
                 >
                   <X className="h-5 w-5" />
                 </button>
               </div>
 
-              {/* Editor Tabs Navigation */}
-              <div className="flex flex-wrap gap-2 border-b border-white/10 pb-3 font-mono text-xs">
+              {/* Editor Tabs */}
+              <div className="flex gap-2 border-b border-white/10 pb-2">
                 <button
                   type="button"
                   onClick={() => setActiveEditorTab("general")}
-                  className={`px-3 py-1.5 rounded-lg transition-all ${
+                  className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all ${
                     activeEditorTab === "general"
-                      ? "bg-white text-black font-bold"
-                      : "glass-panel text-neutral-400 hover:text-white"
+                      ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
+                      : "text-neutral-400 hover:text-white"
                   }`}
                 >
-                  General Info
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveEditorTab("lists")}
-                  className={`px-3 py-1.5 rounded-lg transition-all ${
-                    activeEditorTab === "lists"
-                      ? "bg-white text-black font-bold"
-                      : "glass-panel text-neutral-400 hover:text-white"
-                  }`}
-                >
-                  Objectives & Activities
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveEditorTab("text")}
-                  className={`px-3 py-1.5 rounded-lg transition-all ${
-                    activeEditorTab === "text"
-                      ? "bg-white text-black font-bold"
-                      : "glass-panel text-neutral-400 hover:text-white"
-                  }`}
-                >
-                  Detailed Descriptions
+                  General Details
                 </button>
                 <button
                   type="button"
                   onClick={() => setActiveEditorTab("gallery")}
-                  className={`px-3 py-1.5 rounded-lg transition-all ${
+                  className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all ${
                     activeEditorTab === "gallery"
-                      ? "bg-white text-black font-bold"
-                      : "glass-panel text-neutral-400 hover:text-white"
+                      ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
+                      : "text-neutral-400 hover:text-white"
                   }`}
                 >
-                  Media & Video Gallery ({editingWeek.galleryImages?.length || 0})
+                  Gallery & Media ({(editingWeek.galleryImages || []).length})
                 </button>
               </div>
 
-              {/* TAB 1: GENERAL INFO */}
               {activeEditorTab === "general" && (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <label className="text-[11px] font-mono text-white font-bold uppercase block">TITLE *</label>
+                <div className="space-y-4 text-xs">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-mono text-neutral-300 font-bold uppercase">Title</label>
                       <input
                         type="text"
                         value={editingWeek.title}
                         onChange={(e) => setEditingWeek({ ...editingWeek, title: e.target.value })}
-                        className="w-full rounded-xl glass-panel p-3 text-xs text-white border border-white/15 bg-black/40 focus:outline-none focus:border-white"
+                        className="w-full rounded-xl glass-panel p-2.5 text-white border border-white/15 bg-black/40 focus:outline-none focus:border-white"
                       />
                     </div>
-
-                    <div className="space-y-1.5">
-                      <label className="text-[11px] font-mono text-white font-bold uppercase block">SUBTITLE</label>
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-mono text-neutral-300 font-bold uppercase">Subtitle</label>
                       <input
                         type="text"
                         value={editingWeek.subtitle}
                         onChange={(e) => setEditingWeek({ ...editingWeek, subtitle: e.target.value })}
-                        className="w-full rounded-xl glass-panel p-3 text-xs text-white border border-white/15 bg-black/40 focus:outline-none focus:border-white"
+                        className="w-full rounded-xl glass-panel p-2.5 text-white border border-white/15 bg-black/40 focus:outline-none focus:border-white"
                       />
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div className="space-y-1.5">
-                      <label className="text-[11px] font-mono text-white font-bold uppercase block">CATEGORY</label>
-                      <input
-                        type="text"
-                        value={editingWeek.category}
-                        onChange={(e) => setEditingWeek({ ...editingWeek, category: e.target.value })}
-                        className="w-full rounded-xl glass-panel p-3 text-xs text-white border border-white/15 bg-black/40 focus:outline-none focus:border-white"
-                      />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="text-[11px] font-mono text-white font-bold uppercase block">STATUS</label>
-                      <select
-                        value={editingWeek.status}
-                        onChange={(e) => setEditingWeek({ ...editingWeek, status: e.target.value as "Completed" | "In Progress" })}
-                        className="w-full rounded-xl glass-panel p-3 text-xs text-white border border-white/15 bg-black/40 focus:outline-none focus:border-white"
-                      >
-                        <option value="Completed" className="bg-neutral-900 text-white">Completed</option>
-                        <option value="In Progress" className="bg-neutral-900 text-white">In Progress</option>
-                      </select>
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="text-[11px] font-mono text-white font-bold uppercase block">DATE RANGE</label>
-                      <input
-                        type="text"
-                        value={editingWeek.dateRange}
-                        onChange={(e) => setEditingWeek({ ...editingWeek, dateRange: e.target.value })}
-                        className="w-full rounded-xl glass-panel p-3 text-xs text-white border border-white/15 bg-black/40 focus:outline-none focus:border-white"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="text-[11px] font-mono text-white font-bold uppercase block">OVERVIEW / SUMMARY *</label>
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-mono text-neutral-300 font-bold uppercase">Summary / Overview</label>
                     <textarea
-                      rows={6}
+                      rows={4}
                       value={editingWeek.summary}
                       onChange={(e) => setEditingWeek({ ...editingWeek, summary: e.target.value })}
-                      className="w-full rounded-xl glass-panel p-3.5 text-xs text-white border border-white/15 bg-black/40 focus:outline-none focus:border-white leading-relaxed resize-y"
+                      className="w-full rounded-xl glass-panel p-2.5 text-white border border-white/15 bg-black/40 focus:outline-none focus:border-white font-sans"
                     />
                   </div>
                 </div>
               )}
 
-              {/* TAB 2: OBJECTIVES & ACTIVITIES LISTS */}
-              {activeEditorTab === "lists" && (
-                <div className="space-y-6">
-                  {/* Objectives List */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <label className="text-[11px] font-mono text-white font-bold uppercase flex items-center gap-1.5">
-                        <Target className="h-3.5 w-3.5 text-white" />
-                        <span>OBJECTIVES ({editingWeek.objectives?.length || 0})</span>
-                      </label>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const currentObj = editingWeek.objectives || [];
-                          setEditingWeek({ ...editingWeek, objectives: [...currentObj, "New objective statement..."] });
-                        }}
-                        className="flex items-center gap-1 px-2.5 py-1 rounded bg-white/10 hover:bg-white/20 text-[10px] font-mono text-white border border-white/15"
-                      >
-                        <Plus className="h-3 w-3" />
-                        <span>Add Objective</span>
-                      </button>
-                    </div>
-                    <div data-lenis-prevent className="space-y-2 max-h-56 overflow-y-auto pr-1">
-                      {(editingWeek.objectives || []).map((obj, idx) => (
-                        <div key={idx} className="flex items-center gap-2">
-                          <input
-                            type="text"
-                            value={obj}
-                            onChange={(e) => {
-                              const updated = [...(editingWeek.objectives || [])];
-                              updated[idx] = e.target.value;
-                              setEditingWeek({ ...editingWeek, objectives: updated });
-                            }}
-                            className="flex-1 rounded-xl glass-panel p-2.5 text-xs text-white border border-white/15 bg-black/40"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const updated = (editingWeek.objectives || []).filter((_, i) => i !== idx);
-                              setEditingWeek({ ...editingWeek, objectives: updated });
-                            }}
-                            className="p-2 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/30 shrink-0"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Activities Completed List */}
-                  <div className="space-y-2 pt-2 border-t border-white/10">
-                    <div className="flex items-center justify-between">
-                      <label className="text-[11px] font-mono text-white font-bold uppercase flex items-center gap-1.5">
-                        <Sparkles className="h-3.5 w-3.5 text-white" />
-                        <span>ACTIVITIES COMPLETED ({editingWeek.activitiesCompleted?.length || 0})</span>
-                      </label>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const currentAct = editingWeek.activitiesCompleted || [];
-                          setEditingWeek({ ...editingWeek, activitiesCompleted: [...currentAct, "New activity completed..."] });
-                        }}
-                        className="flex items-center gap-1 px-2.5 py-1 rounded bg-white/10 hover:bg-white/20 text-[10px] font-mono text-white border border-white/15"
-                      >
-                        <Plus className="h-3 w-3" />
-                        <span>Add Activity</span>
-                      </button>
-                    </div>
-                    <div data-lenis-prevent className="space-y-2 max-h-56 overflow-y-auto pr-1">
-                      {(editingWeek.activitiesCompleted || []).map((act, idx) => (
-                        <div key={idx} className="flex items-center gap-2">
-                          <input
-                            type="text"
-                            value={act}
-                            onChange={(e) => {
-                              const updated = [...(editingWeek.activitiesCompleted || [])];
-                              updated[idx] = e.target.value;
-                              setEditingWeek({ ...editingWeek, activitiesCompleted: updated });
-                            }}
-                            className="flex-1 rounded-xl glass-panel p-2.5 text-xs text-white border border-white/15 bg-black/40"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const updated = (editingWeek.activitiesCompleted || []).filter((_, i) => i !== idx);
-                              setEditingWeek({ ...editingWeek, activitiesCompleted: updated });
-                            }}
-                            className="p-2 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/30 shrink-0"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Skills Gained List */}
-                  <div className="space-y-2 pt-2 border-t border-white/10">
-                    <div className="flex items-center justify-between">
-                      <label className="text-[11px] font-mono text-white font-bold uppercase flex items-center gap-1.5">
-                        <span>SKILLS GAINED ({editingWeek.skillsGained?.length || 0})</span>
-                      </label>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const currentSkills = editingWeek.skillsGained || [];
-                          setEditingWeek({ ...editingWeek, skillsGained: [...currentSkills, "New Skill"] });
-                        }}
-                        className="flex items-center gap-1 px-2.5 py-1 rounded bg-white/10 hover:bg-white/20 text-[10px] font-mono text-white border border-white/15"
-                      >
-                        <Plus className="h-3 w-3" />
-                        <span>Add Skill</span>
-                      </button>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {(editingWeek.skillsGained || []).map((skill, idx) => (
-                        <div key={idx} className="flex items-center gap-1 bg-white/10 rounded-lg p-1.5 border border-white/15 text-xs">
-                          <input
-                            type="text"
-                            value={skill}
-                            onChange={(e) => {
-                              const updated = [...(editingWeek.skillsGained || [])];
-                              updated[idx] = e.target.value;
-                              setEditingWeek({ ...editingWeek, skillsGained: updated });
-                            }}
-                            className="bg-transparent text-white font-mono text-xs w-28 focus:outline-none"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const updated = (editingWeek.skillsGained || []).filter((_, i) => i !== idx);
-                              setEditingWeek({ ...editingWeek, skillsGained: updated });
-                            }}
-                            className="text-red-400 hover:text-red-300 p-0.5"
-                          >
-                            <X className="h-3 w-3" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* TAB 3: DETAILED DESCRIPTIONS */}
-              {activeEditorTab === "text" && (
-                <div className="space-y-4">
-                  <div className="space-y-1.5">
-                    <label className="text-[11px] font-mono text-white font-bold uppercase flex items-center gap-1 text-amber-300">
-                      <AlertTriangle className="h-3.5 w-3.5" />
-                      <span>CHALLENGES FACED</span>
-                    </label>
-                    <textarea
-                      rows={3}
-                      value={editingWeek.challengesFaced || ""}
-                      onChange={(e) => setEditingWeek({ ...editingWeek, challengesFaced: e.target.value })}
-                      placeholder="Describe any challenges faced during this week..."
-                      className="w-full rounded-xl glass-panel p-3 text-xs text-white border border-white/15 bg-black/40 focus:outline-none focus:border-white resize-y"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="text-[11px] font-mono text-white font-bold uppercase flex items-center gap-1">
-                      <Lightbulb className="h-3.5 w-3.5 text-white" />
-                      <span>KEY LEARNINGS</span>
-                    </label>
-                    <textarea
-                      rows={3}
-                      value={editingWeek.keyLearnings || ""}
-                      onChange={(e) => setEditingWeek({ ...editingWeek, keyLearnings: e.target.value })}
-                      placeholder="Summarize key technical and personal learnings..."
-                      className="w-full rounded-xl glass-panel p-3 text-xs text-white border border-white/15 bg-black/40 focus:outline-none focus:border-white resize-y"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="text-[11px] font-mono text-white font-bold uppercase flex items-center gap-1">
-                      <Compass className="h-3.5 w-3.5 text-white" />
-                      <span>WEEK REFLECTION</span>
-                    </label>
-                    <textarea
-                      rows={3}
-                      value={editingWeek.reflection || ""}
-                      onChange={(e) => setEditingWeek({ ...editingWeek, reflection: e.target.value })}
-                      placeholder="Personal reflection on progress..."
-                      className="w-full rounded-xl glass-panel p-3 text-xs text-white border border-white/15 bg-black/40 focus:outline-none focus:border-white resize-y"
-                    />
-                  </div>
-                </div>
-              )}
-
-              {/* TAB 4: MEDIA & VIDEO GALLERY MANAGER */}
               {activeEditorTab === "gallery" && (
-                <div className="space-y-6">
-                  {/* Hidden File Inputs for System File Dialog */}
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    accept="image/*,video/*"
-                    className="hidden"
-                    onChange={(e) => {
-                      if (e.target.files && e.target.files[0]) {
-                        handleSystemFileUpload(e.target.files[0]);
-                        e.target.value = "";
-                      }
-                    }}
-                  />
-                  <input
-                    type="file"
-                    ref={replaceFileInputRef}
-                    accept="image/*,video/*"
-                    className="hidden"
-                    onChange={(e) => {
-                      if (e.target.files && e.target.files[0] && targetReplaceIdx !== null) {
-                        handleSystemFileUpload(e.target.files[0], targetReplaceIdx);
-                        e.target.value = "";
-                      }
-                    }}
-                  />
-
-                  {/* Upload Error Alert */}
-                  {uploadError && (
-                    <div className="rounded-xl border border-red-500/40 bg-red-950/40 p-3 text-xs text-red-300 flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <AlertTriangle className="h-4 w-4 text-red-400 shrink-0" />
-                        <span>{uploadError}</span>
-                      </div>
-                      <button onClick={() => setUploadError(null)} className="text-red-400 hover:text-white">
-                        <X className="h-4 w-4" />
-                      </button>
-                    </div>
-                  )}
-
-                  {/* Processing / Uploading Indicator */}
-                  {isUploading && (
-                    <div className="rounded-xl border border-emerald-500/40 bg-emerald-950/40 p-3 text-xs text-emerald-300 flex items-center gap-2 font-mono animate-pulse">
-                      <Loader2 className="h-4 w-4 animate-spin text-emerald-400" />
-                      <span>Reading and processing media file (image/video) from system...</span>
-                    </div>
-                  )}
-
-                  {/* Drag and Drop Zone for Local Files */}
-                  <div
-                    onDragOver={handleDragOver}
-                    onDragLeave={handleDragLeave}
-                    onDrop={handleDrop}
-                    onClick={() => fileInputRef.current?.click()}
-                    className={`cursor-pointer rounded-2xl border-2 border-dashed p-6 text-center transition-all flex flex-col items-center justify-center gap-2 ${
-                      isDragging
-                        ? "border-emerald-400 bg-emerald-500/10 scale-[1.01]"
-                        : "border-white/20 bg-black/30 hover:border-emerald-500/50 hover:bg-neutral-900/60"
-                    }`}
-                  >
-                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                      <UploadCloud className="h-6 w-6" />
-                    </div>
-                    <div className="space-y-0.5">
-                      <p className="text-xs font-semibold text-white">
-                        Click to Choose File or Drag & Drop Image or Video from System
-                      </p>
-                      <p className="text-[11px] text-neutral-400 font-mono">
-                        Supports PNG, JPG, WebP, GIF, MP4, WebM, MOV, OGG • Automatic client-side canvas & media handling
-                      </p>
-                    </div>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-mono text-neutral-300 font-bold uppercase">
+                      GALLERY MEDIA LIST ({(editingWeek.galleryImages || []).length} ITEMS)
+                    </span>
                   </div>
 
-                  {/* Current Gallery Media List */}
-                  <div className="space-y-3">
-                    <label className="text-[11px] font-mono text-white font-bold uppercase flex items-center gap-1.5">
-                      <ImageIcon className="h-3.5 w-3.5 text-white" />
-                      <span>EXISTING GALLERY MEDIA ({editingWeek.galleryImages?.length || 0})</span>
-                    </label>
+                  {editingWeek.galleryImages && editingWeek.galleryImages.length > 0 && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-60 overflow-y-auto pr-1">
+                      {editingWeek.galleryImages.map((imgItem, imgIdx) => {
+                        const url = typeof imgItem === "string" ? imgItem : imgItem.url;
+                        const caption = typeof imgItem === "string" ? `Media ${imgIdx + 1}` : imgItem.caption;
+                        const isVid = isVideoUrl(url, typeof imgItem === "string" ? undefined : imgItem.type);
 
-                    {(!editingWeek.galleryImages || editingWeek.galleryImages.length === 0) ? (
-                      <p className="text-xs text-neutral-400 italic">No media items currently in this week's gallery.</p>
-                    ) : (
-                      <div data-lenis-prevent className="space-y-3 max-h-72 overflow-y-auto pr-1">
-                        {editingWeek.galleryImages.map((imgItem, imgIdx) => {
-                          const url = typeof imgItem === "string" ? imgItem : imgItem.url;
-                          const caption = typeof imgItem === "string" ? "" : imgItem.caption;
-                          const itemType = typeof imgItem === "string" ? undefined : imgItem.type;
-                          const isVid = isVideoUrl(url, itemType);
-
-                          return (
-                            <div key={imgIdx} className="glass-panel p-3 rounded-xl border border-white/15 flex flex-col sm:flex-row items-center gap-3 bg-black/40">
-                              <div className="relative h-16 w-24 shrink-0 overflow-hidden rounded-lg bg-neutral-950 border border-white/10 group">
-                                {isVid ? (
-                                  <video src={url} muted className="h-full w-full object-cover" />
-                                ) : (
-                                  <img src={url} alt={caption} className="h-full w-full object-cover" />
-                                )}
-                                <div className={`absolute top-1 right-1 px-1 py-0.5 rounded text-[8px] font-mono font-bold ${
-                                  isVid ? "bg-amber-500/80 text-black" : "bg-black/70 text-white"
-                                }`}>
-                                  {isVid ? "VIDEO" : "IMAGE"}
-                                </div>
-                              </div>
-
-                              <div className="flex-1 space-y-1.5 w-full">
-                                <div className="flex items-center gap-2">
-                                  <input
-                                    type="text"
-                                    value={url}
-                                    onChange={(e) => {
-                                      const updated = [...(editingWeek.galleryImages || [])];
-                                      const newIsVid = isVideoUrl(e.target.value);
-                                      const mediaKind: "video" | "image" = newIsVid ? "video" : "image";
-                                      updated[imgIdx] = { url: e.target.value, caption, type: mediaKind };
-                                      setEditingWeek({ ...editingWeek, galleryImages: updated });
-                                    }}
-                                    placeholder="Media URL or Base64 Data URL..."
-                                    className="w-full rounded-lg glass-panel p-1.5 text-xs text-white border border-white/10 bg-black/50 font-mono"
-                                  />
-                                </div>
-                                <input
-                                  type="text"
-                                  value={caption}
-                                  onChange={(e) => {
-                                    const updated = [...(editingWeek.galleryImages || [])];
-                                    const mediaKind: "video" | "image" = isVid ? "video" : "image";
-                                    updated[imgIdx] = { url, caption: e.target.value, type: mediaKind };
-                                    setEditingWeek({ ...editingWeek, galleryImages: updated });
-                                  }}
-                                  placeholder="Media Caption..."
-                                  className="w-full rounded-lg glass-panel p-1.5 text-xs text-neutral-300 border border-white/10 bg-black/50"
-                                />
-                              </div>
-
-                              <div className="flex sm:flex-col gap-2 shrink-0">
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setTargetReplaceIdx(imgIdx);
-                                    replaceFileInputRef.current?.click();
-                                  }}
-                                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 text-xs font-mono"
-                                  title="Replace this media file with a file from your computer"
-                                >
-                                  <RefreshCw className="h-3.5 w-3.5" />
-                                  <span>Replace</span>
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    const updated = (editingWeek.galleryImages || []).filter((_, i) => i !== imgIdx);
-                                    setEditingWeek({ ...editingWeek, galleryImages: updated });
-                                  }}
-                                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/30 text-xs font-mono"
-                                >
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                  <span>Delete</span>
-                                </button>
-                              </div>
+                        return (
+                          <div key={imgIdx} className="flex items-center gap-3 p-2.5 rounded-xl glass-panel border border-white/15 bg-black/50">
+                            <div className="h-12 w-16 shrink-0 overflow-hidden rounded-lg bg-black relative">
+                              {isVid ? (
+                                <video src={url} muted className="h-full w-full object-cover" />
+                              ) : (
+                                <img src={url} alt={caption} className="h-full w-full object-cover" />
+                              )}
                             </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Add New Media Section */}
-                  <div className="pt-4 border-t border-white/10 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <label className="text-[11px] font-mono text-emerald-300 font-bold uppercase flex items-center gap-1">
-                        <Plus className="h-3.5 w-3.5 text-emerald-400" />
-                        <span>ADD NEW MEDIA (IMAGE / VIDEO) TO GALLERY</span>
-                      </label>
-
-                      <button
-                        type="button"
-                        onClick={() => fileInputRef.current?.click()}
-                        className="flex items-center gap-1.5 rounded-lg bg-white/10 px-3 py-1 text-xs font-mono text-white border border-white/20 hover:bg-white/20 transition-all"
-                      >
-                        <Upload className="h-3.5 w-3.5 text-emerald-400" />
-                        <span>Upload Image or Video</span>
-                      </button>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-semibold text-white truncate">{caption}</p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const updated = (editingWeek.galleryImages || []).filter((_, i) => i !== imgIdx);
+                                setEditingWeek({ ...editingWeek, galleryImages: updated });
+                              }}
+                              className="p-1.5 rounded-lg bg-red-500/20 text-red-300 hover:bg-red-500/30"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        );
+                      })}
                     </div>
+                  )}
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <input
-                        type="text"
-                        value={newImageUrl}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          setNewImageUrl(val);
-                          if (isVideoUrl(val)) {
-                            setNewMediaType("video");
-                          }
-                        }}
-                        placeholder="Image/Video URL or upload file above..."
-                        className="rounded-xl glass-panel p-2.5 text-xs text-white border border-white/15 bg-black/40 focus:outline-none focus:border-white font-mono"
-                      />
-                      <input
-                        type="text"
-                        value={newImageCaption}
-                        onChange={(e) => setNewImageCaption(e.target.value)}
-                        placeholder="Media Caption description..."
-                        className="rounded-xl glass-panel p-2.5 text-xs text-white border border-white/15 bg-black/40 focus:outline-none focus:border-white"
-                      />
-                    </div>
-
-                    {/* Preview of newly uploaded or typed media */}
-                    {newImageUrl && (
-                      <div className="flex items-center gap-3 p-3 rounded-xl glass-panel border border-emerald-500/30 bg-emerald-950/20">
-                        <div className="h-14 w-20 shrink-0 overflow-hidden rounded-lg bg-black border border-white/15 relative">
-                          {isVideoUrl(newImageUrl, newMediaType) ? (
-                            <video src={newImageUrl} muted className="h-full w-full object-cover" />
-                          ) : (
-                            <img src={newImageUrl} alt="Preview" className="h-full w-full object-cover" />
-                          )}
-                        </div>
-                        <div className="flex-1 text-xs text-neutral-300 truncate">
-                          <p className="font-semibold text-white truncate">{newImageCaption || "Untitled Media"}</p>
-                          <p className="text-[10px] font-mono text-emerald-400">
-                            Ready to add as {isVideoUrl(newImageUrl, newMediaType) ? "Video" : "Image"}
-                          </p>
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (!newImageUrl.trim()) return;
-                          const currentGallery = editingWeek.galleryImages || [];
-                          const isVid = isVideoUrl(newImageUrl.trim(), newMediaType);
-                          const mediaKind: "video" | "image" = isVid ? "video" : "image";
-                          const updated: (string | ForgeGalleryImage)[] = [
-                            ...currentGallery, 
-                            { 
-                              url: newImageUrl.trim(), 
-                              caption: newImageCaption.trim() || `Week ${editingWeek.weekNumber} ${isVid ? "Video" : "Media"}`,
-                              type: mediaKind
-                            }
-                          ];
-                          setEditingWeek({ ...editingWeek, galleryImages: updated });
-                          setNewImageUrl("");
-                          setNewImageCaption("");
-                        }}
-                        disabled={!newImageUrl.trim()}
-                        className="flex items-center gap-1.5 rounded-full bg-emerald-500/20 px-4 py-2 text-xs font-mono font-bold text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/30 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-                      >
-                        <Plus className="h-3.5 w-3.5" />
-                        <span>Add Media to Gallery</span>
-                      </button>
-                    </div>
+                  <div className="pt-2 border-t border-white/10 flex items-center justify-between">
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="flex items-center gap-2 rounded-lg bg-white/10 px-4 py-2 text-xs font-mono text-white border border-white/20 hover:bg-white/20"
+                    >
+                      <Upload className="h-3.5 w-3.5 text-emerald-400" />
+                      <span>Upload Image or Video File</span>
+                    </button>
                   </div>
                 </div>
               )}
 
-              {/* Save Error Alert */}
               {saveError && (
                 <div className="rounded-xl border border-red-500/40 bg-red-950/40 p-3 text-xs text-red-300 flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -1863,13 +1361,12 @@ export default function ForgePage() {
                 </div>
               )}
 
-              {/* Modal Footer Actions */}
               <div className="flex items-center justify-end gap-3 pt-4 border-t border-white/10">
                 <button
                   type="button"
                   disabled={isSaving}
                   onClick={() => setEditingWeek(null)}
-                  className="rounded-full glass-panel px-5 py-2.5 text-xs font-mono text-neutral-400 hover:text-white border border-white/10 disabled:opacity-50"
+                  className="rounded-full glass-panel px-5 py-2.5 text-xs font-mono text-neutral-400 hover:text-white border border-white/10"
                 >
                   Cancel
                 </button>
@@ -1877,19 +1374,10 @@ export default function ForgePage() {
                   type="button"
                   disabled={isSaving}
                   onClick={handleSaveWeekEdit}
-                  className="flex items-center gap-2 rounded-full bg-white px-6 py-2.5 text-xs font-mono font-bold text-black hover:bg-neutral-200 transition-all shadow-md disabled:opacity-50"
+                  className="flex items-center gap-2 rounded-full bg-white px-6 py-2.5 text-xs font-mono font-bold text-black hover:bg-neutral-200 transition-all shadow-md"
                 >
-                  {isSaving ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin text-black" />
-                      <span>Saving...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Save className="h-4 w-4 text-black" />
-                      <span>Save Changes</span>
-                    </>
-                  )}
+                  {isSaving ? <Loader2 className="h-4 w-4 animate-spin text-black" /> : <Save className="h-4 w-4 text-black" />}
+                  <span>Save Changes</span>
                 </button>
               </div>
             </motion.div>

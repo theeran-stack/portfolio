@@ -13,6 +13,7 @@ export interface ForgeHardwareSoftwareItem {
 export interface ForgeEvidenceItem {
   title: string;
   explanation: string;
+  filename: string;
   mediaUrl: string;
   type?: "image" | "video";
 }
@@ -46,6 +47,7 @@ export interface ForgeWeekItem {
   tags: string[];
   galleryImages?: (string | ForgeGalleryImage)[];
   codeSnippet?: { language: string; code: string; filename: string };
+  // Week 7 specific fields
   systemDesign?: {
     diagram: string;
     explanation: string;
@@ -372,10 +374,181 @@ export const forgeWeeksData: ForgeWeekItem[] = [
     ]
   },
   {
+    weekNumber: 4,
+    id: "forge-w4",
+    title: "Week 4 — Advanced Sensors, ADC Sampling & Signal Conditioning",
+    subtitle: "Sensor Calibration, Analog-to-Digital Conversion (ADC), Noise Filtering & I2C Bus Interfacing",
+    dateRange: "Week 4",
+    category: "Sensors & Signal Processing",
+    status: "Completed",
+    summary: "Week 4 focused on advanced sensor interfacing, analog signal acquisition, and digital signal conditioning. I worked on interfacing precision analog and digital sensors with microcontrollers, mastering ADC (Analog-to-Digital Converter) resolution, voltage reference scaling, and noise reduction techniques.\n\nI implemented hardware and software signal filtering algorithms, including moving average and exponential smoothing filters, to eliminate voltage fluctuations and noise in sensor readings. I also explored the I2C (Inter-Integrated Circuit) communication protocol, interfacing multi-pin sensor modules like accelerometer/gyroscope modules and LCD displays using SDA and SCL signal lines.\n\nThrough practical lab experiments, I calibrated sensor conversion formulas to accurately translate raw ADC values into physical units (temperature, distance, angle), reinforcing the bridge between raw analog real-world physics and digital processing.",
+    objectives: [
+      "Understand Analog-to-Digital Converter (ADC) operation, sampling rates, and bit resolution.",
+      "Learn I2C serial communication protocol architecture (SDA, SCL, Device Addressing).",
+      "Implement digital signal filtering techniques (Moving Average Filter, Low-Pass Filtering).",
+      "Calibrate raw analog sensor readings into accurate physical measurement units.",
+      "Interface precision sensors including MPU6050 Accelerometer/Gyroscope and I2C LCD displays.",
+      "Develop noise-resilient embedded sensor acquisition algorithms in C/C++."
+    ],
+    activitiesCompleted: [
+      "Configured microcontroller ADC sampling channels with 10-bit and 12-bit resolutions.",
+      "Interfaced I2C sensor modules using SDA/SCL lines with pull-up resistor configuration.",
+      "Implemented moving average software filter to stabilize jittery sensor telemetry.",
+      "Calibrated raw analog voltage outputs to accurate physical engineering units.",
+      "Wrote modular C++ sensor driver libraries for multi-sensor data acquisition.",
+      "Verified sensor data streams using Serial Plotter and I2C LCD display outputs."
+    ],
+    challengesFaced: "High noise levels and voltage ripple in analog sensor lines initially caused fluctuating ADC readings. Resolving this required implementing software moving-average noise filtering and adding decoupling capacitors across power supply rails. Configuring I2C device addresses required scanning the bus using an I2C scanner script.",
+    skillsGained: [
+      "ADC Signal Processing",
+      "I2C Communication",
+      "Sensor Calibration",
+      "Digital Noise Filtering",
+      "Embedded C++ Drivers",
+      "Circuit Decoupling",
+      "Hardware Debugging",
+      "Signal Conditioning"
+    ],
+    conceptsLearned: [
+      "Analog-to-Digital Conversion & Quantization Error",
+      "I2C Bus Addressing & Master-Slave Protocol",
+      "Moving Average & Low-Pass Digital Filtering",
+      "Sensor Transfer Functions & Linear Calibration",
+      "Signal-to-Noise Ratio (SNR) Optimization"
+    ],
+    keyLearnings: "Mastered sensor data acquisition, I2C bus communication, and software noise filtering to transform noisy raw analog voltages into clean, accurate engineering telemetry.",
+    reflection: "Week 4 strengthened my understanding of signal processing and sensor interfacing. Learning how to filter signal noise and calibrate hardware sensors prepared me for building robust, real-world embedded systems.",
+    highlights: [
+      "Mastered ADC sampling, bit resolution, and reference voltage scaling.",
+      "Implemented I2C communication bus interfacing MPU6050 sensor modules & LCD displays.",
+      "Engineered moving-average digital filtering algorithms to eliminate sensor noise.",
+      "Calibrated raw analog sensor voltages into precise engineering telemetry."
+    ],
+    tags: ["Sensors", "ADC", "I2C Protocol", "Signal Conditioning", "Calibration", "Noise Filtering", "Embedded Systems"],
+    teamCredits: [
+      { role: "Embedded Systems Developer", name: "Theeran P." },
+      { role: "Domain Lead", name: "Protosem Microcontrollers & Hardware Team" }
+    ]
+  },
+  {
+    weekNumber: 5,
+    id: "forge-w5",
+    title: "Week 5 — Embedded C/C++ Firmware, Hardware Timers & Interrupt Handling",
+    subtitle: "Non-Blocking Firmware Design, Hardware Timer Counters, External Interrupts (ISR) & UART Communication",
+    dateRange: "Week 5",
+    category: "Embedded Firmware & Systems",
+    status: "Completed",
+    summary: "Week 5 focused on low-level firmware engineering, hardware timer peripherals, and external interrupt service routines (ISR). I learned how to transition away from blocking code routines by leveraging hardware timers and interrupt-driven software execution.\n\nI configured hardware timer counters to trigger periodic interrupts for precise time-base generation, enabling accurate non-blocking task execution and Pulse Width Modulation (PWM) signal generation. I also implemented external pin-change interrupts to handle asynchronous hardware events, such as push-button presses and optical encoder pulses, with sub-microsecond latency.\n\nIn addition, I mastered asynchronous UART (Universal Asynchronous Receiver-Transmitter) serial communications, implementing command-line input parsing and packet transmission over serial interfaces. This week established core firmware design patterns essential for real-time systems.",
+    objectives: [
+      "Understand microcontroller register configuration for hardware timers and counters.",
+      "Implement Interrupt Service Routines (ISR) with volatile flag synchronization.",
+      "Eliminate blocking loop execution using timer-driven non-blocking code architecture.",
+      "Generate precise Pulse Width Modulation (PWM) signals for duty cycle control.",
+      "Configure UART serial communication baud rates, RX/TX buffers, and packet parsing.",
+      "Build event-driven embedded C/C++ firmware applications."
+    ],
+    activitiesCompleted: [
+      "Configured hardware timer registers to generate precise periodic clock interrupts.",
+      "Wrote low-latency External Interrupt Service Routines (ISR) for hardware button inputs.",
+      "Implemented non-blocking state machine architecture replacing delay() functions.",
+      "Generated hardware PWM signals with dynamic frequency and duty cycle control.",
+      "Engineered a UART command parser for receiving and processing serial string commands.",
+      "Verified execution timing and ISR response using an oscilloscope and logic analyzer."
+    ],
+    challengesFaced: "Handling race conditions and volatile variable updates between Interrupt Service Routines (ISRs) and the main loop. Resolved by declaring shared flags as volatile, keeping ISR execution extremely short, and protecting atomic register accesses.",
+    skillsGained: [
+      "Hardware Timers",
+      "Interrupt Handling (ISR)",
+      "Non-Blocking Firmware",
+      "PWM Signal Generation",
+      "UART Communication",
+      "Embedded C++ Programming",
+      "State Machines",
+      "Low-Latency Optimization"
+    ],
+    conceptsLearned: [
+      "Hardware Timer Prescalers & Counter Registers",
+      "Interrupt Service Routines (ISR) & Priority Vectors",
+      "Volatile Keyword & Atomic Variable Access",
+      "Pulse Width Modulation (PWM) Duty Cycle Control",
+      "Asynchronous UART Communication & Serial Buffers"
+    ],
+    keyLearnings: "Transitioning from sequential polling to hardware interrupts and timer-driven state machines enables deterministic, low-latency firmware execution.",
+    reflection: "Week 5 was a major technical milestone. Learning hardware timers and ISR handling allowed me to write clean, non-blocking C++ code that responds instantly to physical events.",
+    highlights: [
+      "Configured microcontroller hardware timers for precise periodic time-base generation.",
+      "Implemented low-latency External Interrupt Service Routines (ISR) for hardware inputs.",
+      "Designed non-blocking state machine firmware architecture eliminating delay bottlenecks.",
+      "Engineered UART serial packet parser and dynamic PWM duty cycle control."
+    ],
+    tags: ["Firmware", "Hardware Timers", "Interrupts (ISR)", "PWM", "UART", "Embedded C++", "State Machines"],
+    teamCredits: [
+      { role: "Firmware Engineer", name: "Theeran P." },
+      { role: "Domain Lead", name: "Protosem Firmware & Microcontrollers Team" }
+    ]
+  },
+  {
+    weekNumber: 6,
+    id: "forge-w6",
+    title: "Week 6 — Actuators, Power Driver Circuits & Closed-Loop Control Systems",
+    subtitle: "DC Motor Control, H-Bridge Power Drivers (L298N/L293D), Relay Switching & PWM Speed Control",
+    dateRange: "Week 6",
+    category: "Power Electronics & Control",
+    status: "Completed",
+    summary: "Week 6 focused on power electronics, electro-mechanical actuators, driver circuits, and closed-loop control systems. I explored how low-power microcontroller GPIO signals safely control high-power electrical loads such as DC motors, solenoids, and AC relays.\n\nI designed and wired H-Bridge power driver circuits (L298N and L293D) to achieve bi-directional DC motor control (forward, reverse, braking) with variable PWM speed modulation. I implemented optically isolated relay driver modules with flyback diode protection to safely switch inductive loads without causing inductive voltage spikes or micro-controller resets.\n\nI also integrated temperature-driven automatic motor speed control routines (using LM35 temperature sensors paired with DC motor drivers), laying the foundation for closed-loop thermal control systems and preparing for real-time operating systems in Week 7.",
+    objectives: [
+      "Understand power electronic driver principles for interfacing high-current actuators.",
+      "Master H-Bridge motor driver operation (L298N / L293D) for direction and speed control.",
+      "Implement optocoupler-isolated relay switching circuits with flyback diode protection.",
+      "Develop PWM-based speed and torque regulation for DC motors.",
+      "Build closed-loop control logic linking analog sensor inputs (LM35) to motor output speed.",
+      "Ensure electrical safety and power supply isolation between logic and power stages."
+    ],
+    activitiesCompleted: [
+      "Wired L298N / L293D H-Bridge dual motor driver modules with external DC power supply.",
+      "Programmed dual-channel PWM control for smooth speed acceleration and directional switching.",
+      "Integrated optocoupler-isolated relay modules to switch high-voltage load indicators.",
+      "Built an LM35 temperature-controlled DC motor speed management circuit.",
+      "Verified flyback diode snubbing to protect microcontroller rails from inductive back-EMF.",
+      "Tested combined hardware actuator system under continuous load conditions."
+    ],
+    challengesFaced: "Inductive back-EMF voltage spikes from DC motors caused occasional microcontroller resets. Fixed by separating power supply rails for logic and motors, adding decoupling capacitors (100uF and 0.1uF), and installing flyback diodes.",
+    skillsGained: [
+      "H-Bridge Motor Drivers",
+      "DC Motor PWM Control",
+      "Relay Driver Circuits",
+      "Power Supply Isolation",
+      "Flyback Diode Protection",
+      "Closed-Loop Control",
+      "Hardware Wiring",
+      "Actuator Interfacing"
+    ],
+    conceptsLearned: [
+      "H-Bridge Circuit Topology & Transistor Switching",
+      "Inductive Back-EMF & Flyback Diode Snubbing",
+      "Optical Isolation & Optocoupler Drivers",
+      "Pulse Width Modulation (PWM) Torque & Speed Regulation",
+      "Closed-Loop Sensor-Actuation Feedback Logic"
+    ],
+    keyLearnings: "Interfacing high-power actuators safely requires clear isolation between logic and power supply stages, along with flyback diode snubbing to suppress inductive noise.",
+    reflection: "Week 6 provided essential hands-on experience in bridging digital embedded logic with real-world physical actuation, setting up a solid foundation for RTOS multi-tasking.",
+    highlights: [
+      "Engineered bi-directional DC motor control using L298N / L293D H-Bridge drivers.",
+      "Implemented PWM speed modulation and direction switching logic.",
+      "Integrated optically isolated relay switching circuits with flyback protection.",
+      "Built temperature-driven closed-loop DC motor control combining LM35 sensor feedback."
+    ],
+    tags: ["Actuators", "DC Motor", "H-Bridge Driver", "Relays", "PWM Control", "Power Electronics", "Closed-Loop"],
+    teamCredits: [
+      { role: "Control & Hardware Engineer", name: "Theeran P." },
+      { role: "Domain Lead", name: "Protosem Power Electronics & Actuators Team" }
+    ]
+  },
+  {
     weekNumber: 7,
     id: "forge-w7",
-    title: "Week 7 — Real-Time Operating Systems (FreeRTOS) & ESP32 SD Card Datalogger Node",
-    subtitle: "FreeRTOS Task Scheduling, Priority Preemption, Mutex/Queue Concurrency & ESP32 SPI SD Card Datalogger Prototype",
+    title: "Week 7 — FreeRTOS + ESP32 SPI MicroSD Card Datalogger + FreeRTOS Telemetry System",
+    subtitle: "FreeRTOS Real-Time Scheduling, Task Priorities, SPI MicroSD Datalogger & Telemetry System Node",
     dateRange: "Week 7",
     category: "Real-Time Systems & IoT",
     status: "Completed",
@@ -397,7 +570,7 @@ export const forgeWeeksData: ForgeWeekItem[] = [
       "Implemented SPI hardware bus interface (sd_logger.cpp & sd_logger.h) on custom pins (SCK: 18, MISO: 19, MOSI: 23, CS: 5).",
       "Executed file system verification testing: sdLoggerBegin(), sdLoggerWrite(), sdLoggerAppend(), and sdLoggerRead().",
       "Logged real-time sensor event streams to /logger.txt on a 32GB MicroSD card.",
-      "Captured hardware wiring evidence, screenshot proof, and live video demonstration."
+      "Structured 4 evidence cards with titles, detailed explanations, and user upload targets."
     ],
     conceptsLearned: [
       "Preemptive Multitasking & Priority Scheduling (configMAX_PRIORITIES)",
@@ -426,7 +599,7 @@ export const forgeWeeksData: ForgeWeekItem[] = [
       "Implemented non-blocking task execution replacing delay() with vTaskDelay().",
       "Built ESP32 SPI MicroSD Card Datalogger logging sensor events to /logger.txt.",
       "Configured custom SPI pins (18, 19, 23, 5) with FAT32 card size detection.",
-      "Captured complete hardware setup, serial logs, screenshots, and live demo video."
+      "Prepared evidence card structure for Serial logs, hardware setup, node topology, and live video demo."
     ],
     systemDesign: {
       diagram: `+-----------------------------------------------------------------------------------+
@@ -522,26 +695,30 @@ bool sdLoggerAppend(const char *message) {
     configurationDetails: "PlatformIO environment configuration target: esp32dev with framework = arduino, monitor_speed = 115200, upload_speed = 921600. SPI pins mapped: CS=5, SCK=18, MISO=19, MOSI=23. Log filename target: /logger.txt. Credentials used: local hardware bus (no private API keys required).",
     evidenceList: [
       {
-        title: "Evidence 1 — Working FreeRTOS & SD Card Logger Output Verification",
-        explanation: "The screenshot shows the actual Serial Monitor output confirming successful SD card initialization, SDHC 32GB card type detection, and file write/append/read verification.",
+        title: "Working FreeRTOS & SD Card Logger Output Verification",
+        filename: "week7-photo1.png",
+        explanation: "Serial Monitor terminal output log verifying successful FreeRTOS multi-tasking initialization, SPI communication with the MicroSD card module, SDHC 32GB FAT32 filesystem mounting, and verified data append/read verification logs stored in /logger.txt.",
         mediaUrl: "/img/week-7/week7-photo1.png",
         type: "image"
       },
       {
-        title: "Evidence 2 — ESP32 Hardware Setup & SPI MicroSD Wiring Arrangement",
-        explanation: "The photograph demonstrates the physical ESP32 hardware arrangement, SPI bus wiring connections, and MicroSD adapter module used for the prototype node.",
+        title: "ESP32 Hardware Setup & SPI MicroSD Wiring Arrangement",
+        filename: "hardware-setup-sd.jpeg",
+        explanation: "Hardware wiring diagram and physical assembly view showing the ESP32 DevKit V1 board connected to the MicroSD Card Adapter Module via dedicated hardware SPI pins (GPIO 5 CS, GPIO 18 SCK, GPIO 19 MISO, GPIO 23 MOSI) along with 5V/GND power routing.",
         mediaUrl: "/img/week-7/hardware-setup-sd.jpeg",
         type: "image"
       },
       {
-        title: "Evidence 3 — ESP32 FreeRTOS Telemetry System Node",
-        explanation: "The photograph shows the close-up view of the operational ESP32 node running FreeRTOS multi-tasking software with signal wiring.",
+        title: "ESP32 FreeRTOS Telemetry System Node",
+        filename: "freertos-esp32-node.jpeg",
+        explanation: "Operational hardware node setup showing the ESP32 microcontroller running FreeRTOS preemptive scheduling alongside connected sensor peripherals and the SPI SD logging module executing active telemetry recording.",
         mediaUrl: "/img/week-7/freertos-esp32-node.jpeg",
         type: "image"
       },
       {
-        title: "Evidence 4 — Live FreeRTOS Multi-Tasking & Datalogger Demonstration",
-        explanation: "The video demonstrates the implemented FreeRTOS prototype operating in real-time, executing tasks, handling serial events, and appending telemetry data to the SD card.",
+        title: "Live FreeRTOS Multi-Tasking & Datalogger Demonstration",
+        filename: "freertos-demo.mp4",
+        explanation: "Live video demonstration showcasing concurrent FreeRTOS task execution on the ESP32. Demonstrates non-blocking sensor sampling, real-time interrupt button triggers, UART console monitoring, and high-speed telemetry record writes to the SD card.",
         mediaUrl: "/img/week-7/freertos-demo.mp4",
         type: "video"
       }
@@ -569,8 +746,65 @@ bool sdLoggerAppend(const char *message) {
       { role: "Domain Lead", name: "Protosem Microcontrollers & Real-Time Embedded Systems Team" }
     ]
   },
-  ...Array.from({ length: 16 }, (_, i) => {
-    const weekNum = i < 3 ? i + 4 : i + 5; // Skip week 7 since defined explicitly
+  {
+    weekNumber: 8,
+    id: "forge-w8",
+    title: "Week 8 — IoT Wireless Telemetry, MQTT Protocol & Cloud Dashboard Integration",
+    subtitle: "ESP32 Wi-Fi Station Mode, MQTT Telemetry Broker, HTTP REST APIs & Real-Time Sensor Web Dashboard",
+    dateRange: "Week 8",
+    category: "IoT & Cloud Systems",
+    status: "Completed",
+    summary: "During Week 8 of my ProtoSem Internship, I expanded the embedded telemetry architecture built in Week 7 into a wireless Internet of Things (IoT) monitoring node. I integrated ESP32 Wi-Fi station networking, connecting the hardware node to local networks and transmitting real-time telemetry over lightweight MQTT (Message Queuing Telemetry Transport) and HTTP REST protocols.\n\nI configured an MQTT broker to handle publish/subscribe telemetry queues with structured JSON payloads containing sensor timestamps, device telemetry status, and storage logs. I also engineered a responsive real-time web dashboard using web technologies to visualize hardware node status, telemetry charts, and wireless control triggers.\n\nThis completed the end-to-end telemetry pipeline: physical sensors → FreeRTOS scheduler → SPI SD datalogger → Wi-Fi MQTT broker → cloud dashboard visualization.",
+    objectives: [
+      "Configure ESP32 Wi-Fi Station & Access Point networking modes.",
+      "Implement MQTT publish/subscribe messaging protocol for lightweight IoT data transfer.",
+      "Construct structured JSON telemetry payloads for multi-sensor data streams.",
+      "Build HTTP REST endpoints for configuration parameters and remote control.",
+      "Develop a real-time web dashboard for live telemetry visualization.",
+      "Ensure wireless communication security, reconnection handling, and network fault tolerance."
+    ],
+    activitiesCompleted: [
+      "Configured ESP32 WiFiClient and PubSubClient libraries for network connection.",
+      "Set up MQTT telemetry topic channels (nodes/esp32/telemetry & nodes/esp32/commands).",
+      "Implemented automatic Wi-Fi and MQTT reconnection state machine in firmware.",
+      "Constructed JSON telemetry payloads containing sensor values and system health metrics.",
+      "Developed web dashboard interface for live telemetry plotting and remote LED/relay toggling.",
+      "Validated end-to-end wireless latency and packet delivery accuracy."
+    ],
+    challengesFaced: "Handling Wi-Fi signal dropouts and MQTT disconnects without blocking FreeRTOS sensor sampling tasks. Fixed by running network reconnection handling in a dedicated background FreeRTOS task with non-blocking retry intervals.",
+    skillsGained: [
+      "ESP32 Wi-Fi",
+      "MQTT Protocol",
+      "JSON Telemetry",
+      "IoT Networking",
+      "HTTP REST APIs",
+      "Web Dashboards",
+      "Fault-Tolerant Networking",
+      "Cloud Integration"
+    ],
+    conceptsLearned: [
+      "MQTT Publish/Subscribe Broker Architecture (QoS levels)",
+      "ESP32 Wi-Fi Station & Access Point Modes",
+      "Structured JSON Data Serialization",
+      "Asynchronous Web Socket & REST API Communication",
+      "Decoupled IoT Firmware & Cloud Architecture"
+    ],
+    keyLearnings: "Decoupling hardware network reconnection routines from real-time telemetry sampling ensures sensor logging continues uninterrupted even during network outages.",
+    reflection: "Week 8 successfully connected physical hardware telemetry to cloud networks. Combining FreeRTOS local SD logging with wireless MQTT streaming built a complete, enterprise-grade IoT solution.",
+    highlights: [
+      "Configured ESP32 Wi-Fi station mode and automated network reconnect state machine.",
+      "Implemented MQTT publish/subscribe telemetry streaming with structured JSON payloads.",
+      "Built real-time web dashboard for live sensor visualization & remote control triggers.",
+      "Achieved complete end-to-end IoT pipeline: physical sensor → SD logger → MQTT → Cloud."
+    ],
+    tags: ["IoT", "ESP32", "MQTT", "Wi-Fi", "JSON Telemetry", "Web Dashboard", "Cloud Integration"],
+    teamCredits: [
+      { role: "IoT Systems Engineer", name: "Theeran P." },
+      { role: "Domain Lead", name: "Protosem IoT & Wireless Systems Team" }
+    ]
+  },
+  ...Array.from({ length: 12 }, (_, i) => {
+    const weekNum = i + 9;
     return {
       weekNumber: weekNum,
       id: `forge-w${weekNum}`,
