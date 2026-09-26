@@ -424,6 +424,12 @@ export const forgeWeeksData: ForgeWeekItem[] = [
       "Engineered moving-average digital filtering algorithms to eliminate sensor noise.",
       "Calibrated raw analog sensor voltages into precise engineering telemetry."
     ],
+    galleryImages: [
+      {
+        url: "/img/IMG20260728162105.jpg.jpeg",
+        caption: "Sensor Calibration & Microcontroller ADC Signal Interfacing"
+      }
+    ],
     tags: ["Sensors", "ADC", "I2C Protocol", "Signal Conditioning", "Calibration", "Noise Filtering", "Embedded Systems"],
     teamCredits: [
       { role: "Embedded Systems Developer", name: "Theeran P." },
