@@ -1,38 +1,52 @@
-import type { Metadata } from "next";
-import { Outfit, Space_Grotesk, Cinzel } from "next/font/google";
-import "./globals.css";
-import { Header } from "@/components/layout/Header";
-import { Footer } from "@/components/layout/Footer";
-import { LenisProvider } from "@/lib/lenis";
-import { CustomCursor } from "@/components/ui/CustomCursor";
+// @/app/layout.tsx
+import type { Metadata } from 'next';
+import { Inter, Outfit, JetBrains_Mono } from 'next/font/google';
+import './globals.css';
+
+import { ThemeProvider } from '@/context/ThemeContext';
+import { ModeProvider } from '@/context/ModeContext';
+import { WelcomeProvider } from '@/context/WelcomeContext';
+
+import { Navbar } from '@/components/layout/Navbar';
+import { Footer } from '@/components/layout/Footer';
+import { WelcomeScreen } from '@/components/layout/WelcomeScreen';
+import { siteConfig } from '@/config/site.config';
+
+const inter = Inter({
+  subsets: ['latin'],
+  variable: '--font-inter',
+  display: 'swap',
+});
 
 const outfit = Outfit({
-  subsets: ["latin"],
-  variable: "--font-outfit",
-  display: "swap",
+  subsets: ['latin'],
+  variable: '--font-outfit',
+  display: 'swap',
 });
 
-const spaceGrotesk = Space_Grotesk({
-  subsets: ["latin"],
-  variable: "--font-space-grotesk",
-  display: "swap",
-});
-
-const cinzel = Cinzel({
-  subsets: ["latin"],
-  variable: "--font-cinzel",
-  display: "swap",
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ['latin'],
+  variable: '--font-mono',
+  display: 'swap',
 });
 
 export const metadata: Metadata = {
-  title: "Theeran | Flagship Digital Identity Platform",
-  description: "Architecting high-performance digital identities, cinematic media systems, and spatial web platforms.",
-  keywords: ["Theeran", "Digital Architect", "Next.js", "WebGL", "Framer Motion", "Forge Archive", "Cinematography"],
-  authors: [{ name: "Theeran" }],
+  title: siteConfig.title,
+  description: siteConfig.description,
+  authors: [{ name: siteConfig.author }],
+  keywords: siteConfig.seo.keywords,
   openGraph: {
-    title: "Theeran | Flagship Digital Identity Platform",
-    description: "Architecting high-performance digital identities, cinematic media, and spatial web systems.",
-    type: "website",
+    title: siteConfig.title,
+    description: siteConfig.description,
+    url: siteConfig.url,
+    siteName: siteConfig.name,
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: siteConfig.title,
+    description: siteConfig.description,
+    creator: siteConfig.seo.twitterHandle,
   },
 };
 
@@ -42,14 +56,20 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${outfit.variable} ${spaceGrotesk.variable} ${cinzel.variable}`}>
-      <body className="bg-brand-primary text-brand-light antialiased selection:bg-brand-highlight/30 selection:text-white">
-        <LenisProvider>
-          <CustomCursor />
-          <Header />
-          <main className="min-h-screen pt-24">{children}</main>
-          <Footer />
-        </LenisProvider>
+    <html lang="en" data-theme="dark" data-mode="hybrid">
+      <body className={`${inter.variable} ${outfit.variable} ${jetbrainsMono.variable} antialiased min-h-screen flex flex-col justify-between`}>
+        <ThemeProvider>
+          <ModeProvider>
+            <WelcomeProvider>
+              <Navbar />
+              <WelcomeScreen />
+              <main className="flex-1 pt-24 pb-16">
+                {children}
+              </main>
+              <Footer />
+            </WelcomeProvider>
+          </ModeProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

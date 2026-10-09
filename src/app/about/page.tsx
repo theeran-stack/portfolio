@@ -1,208 +1,123 @@
-"use client";
+// @/app/about/page.tsx
+'use client';
 
-import { motion } from "framer-motion";
-import { profileData } from "@/content/profile";
-import { GraduationCap, Camera, Video, Code2, Users, Compass, Award, CheckCircle2, Sparkles, Building2, MapPin } from "lucide-react";
-import Link from "next/link";
-
-const smoothEase = [0.16, 1, 0.3, 1];
+import React from 'react';
+import { personalProfile } from '@/content/personal.content';
+import { SectionHeading } from '@/components/shared/SectionHeading';
+import { Card } from '@/components/ui/Card';
+import { Badge } from '@/components/ui/Badge';
+import { MotionWrapper } from '@/components/shared/MotionWrapper';
+import { GraduationCap, MapPin, Sparkles, Users, Video, Code2, Heart, Award } from 'lucide-react';
 
 export default function AboutPage() {
   return (
-    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-20 py-8">
-      
-      {/* HERO SECTION */}
-      <section className="space-y-6 max-w-4xl">
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, ease: smoothEase }}
-          className="inline-flex items-center gap-2 rounded-full glass-panel px-4 py-1.5 text-xs text-white border border-white/10"
-        >
-          <Sparkles className="h-3.5 w-3.5 text-neutral-300" />
-          <span className="font-mono text-[11px] uppercase tracking-widest text-neutral-300">WHO I AM • ABOUT ME</span>
-        </motion.div>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-16">
+      <SectionHeading
+        badge="My Personal Story"
+        badgeIcon={Sparkles}
+        title="Who I Am & What Drives Me"
+        subtitle="I am a Computer Science Engineering student, Video Editor, and Cinematographer. Here is how I combine software craftsmanship with visual storytelling."
+      />
 
-        <motion.h1
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.1, ease: smoothEase }}
-          className="font-serif text-4xl sm:text-6xl font-bold text-white leading-tight"
-        >
-          Technology & Visual Storytelling in Harmony.
-        </motion.h1>
-
-        <motion.p
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.2, ease: smoothEase }}
-          className="text-base sm:text-lg text-neutral-300 leading-relaxed font-sans"
-        >
-          {profileData.headline}
-        </motion.p>
-      </section>
-
-      {/* BIOGRAPHY & PHILOSOPHY NARRATIVE */}
-      <section className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
-        <div className="lg:col-span-8 space-y-6 glass-panel-elevated rounded-3xl p-8 md:p-12 border border-white/10 shadow-glass-md">
-          <div className="flex items-center justify-between border-b border-white/10 pb-4">
-            <h2 className="font-serif text-2xl sm:text-3xl font-bold text-white">
-              About Me
-            </h2>
-            <span className="font-mono text-xs text-neutral-400">Coimbatore, India</span>
-          </div>
-
-          {profileData.bioParagraphs.map((paragraph, index) => (
-            <p key={index} className="text-sm sm:text-base text-neutral-300 leading-relaxed font-sans">
-              {paragraph}
-            </p>
-          ))}
-
-          {/* Core Philosophy Box */}
-          <div className="mt-8 rounded-2xl bg-neutral-900/90 p-6 border border-white/15 space-y-4">
-            <div className="flex items-center gap-2 text-xs font-mono text-white uppercase tracking-wider font-bold">
-              <Compass className="h-4 w-4 text-white" />
-              <span>MY PHILOSOPHY</span>
-            </div>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-              {profileData.philosophy.map((item, idx) => (
-                <div key={idx} className="flex items-start gap-2.5 glass-panel rounded-xl p-3 border border-white/10">
-                  <CheckCircle2 className="h-4 w-4 text-white shrink-0 mt-0.5" />
-                  <span className="text-xs font-mono text-neutral-200">{item}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Education & Organizations Drawer */}
-        <div className="lg:col-span-4 space-y-6">
-          {/* Education Card */}
-          <div className="glass-panel rounded-3xl p-6 border border-white/10 space-y-4">
-            <div className="flex items-center gap-2 border-b border-white/10 pb-3">
-              <GraduationCap className="h-5 w-5 text-white" />
-              <h3 className="font-serif text-xl font-bold text-white">Education</h3>
-            </div>
-            <div className="space-y-2 font-mono text-xs">
-              <span className="rounded-full bg-white/10 px-2.5 py-0.5 text-[10px] text-white border border-white/15 inline-block">
-                2024–2028
-              </span>
-              <h4 className="text-sm font-bold text-white font-serif">Bachelor of Engineering</h4>
-              <p className="text-neutral-300">Computer Science and Engineering</p>
-              <p className="text-neutral-400">Kumaraguru College of Technology</p>
-              <div className="flex items-center gap-1 text-[11px] text-neutral-500 pt-1">
-                <MapPin className="h-3 w-3" />
-                <span>Coimbatore, India</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Organizations Card */}
-          <div className="glass-panel rounded-3xl p-6 border border-white/10 space-y-4">
-            <div className="flex items-center gap-2 border-b border-white/10 pb-3">
-              <Users className="h-5 w-5 text-white" />
-              <h3 className="font-serif text-xl font-bold text-white">Organizations</h3>
-            </div>
-            
-            <div className="space-y-4 font-mono text-xs">
-              <div className="space-y-1">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-white">Nigal Club</span>
-                  <span className="text-[9px] bg-white/10 px-2 py-0.5 rounded text-white">Member</span>
-                </div>
-                <p className="text-[11px] text-neutral-300">Filmmaking Club at Kumaraguru College of Technology</p>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+        {/* Left Sticky Fact Card */}
+        <div className="space-y-6">
+          <MotionWrapper>
+            <Card hoverGlow className="p-6 space-y-6">
+              <div className="relative h-64 rounded-xl overflow-hidden bg-black/40 border border-[var(--border-subtle)]">
+                {/* eslint-disable-next-html-element-suppression */}
+                <img
+                  src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=800&auto=format&fit=crop"
+                  alt={personalProfile.name}
+                  className="w-full h-full object-cover"
+                />
               </div>
 
-              <div className="space-y-1 border-t border-white/10 pt-3">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-white">Elaris</span>
-                  <span className="text-[9px] bg-white/10 px-2 py-0.5 rounded text-white">Creative Team</span>
-                </div>
-                <p className="text-[11px] text-neutral-300">Creative Media Production Team Member</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* DETAILED EXPERIENCE TIMELINE */}
-      <section className="space-y-10">
-        <div>
-          <span className="text-xs font-mono text-neutral-400 uppercase tracking-widest">PRACTICAL JOURNEY</span>
-          <h2 className="font-serif text-3xl sm:text-4xl font-bold text-white mt-1">
-            Experience & Key Roles
-          </h2>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {profileData.experiences.map((item, idx) => (
-            <motion.div
-              key={item.id}
-              initial={{ opacity: 0, y: 16 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: idx * 0.1, duration: 0.5, ease: smoothEase }}
-              className="glass-panel rounded-2xl p-6 sm:p-8 border border-white/10 hover:border-white/20 transition-all space-y-4 flex flex-col justify-between"
-            >
               <div className="space-y-3">
-                <div className="flex items-center justify-between border-b border-white/10 pb-3">
-                  <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-mono font-bold text-white border border-white/15">
-                    {item.period}
-                  </span>
-                  <span className="text-xs text-neutral-400 font-mono">{item.location}</span>
-                </div>
-
-                <div className="space-y-1">
-                  <h3 className="font-serif text-xl font-bold text-white">{item.role}</h3>
-                  <p className="text-xs font-semibold text-neutral-300 font-mono">{item.organization}</p>
-                </div>
-
-                <p className="text-xs text-neutral-300 leading-relaxed font-sans">
-                  {item.description}
-                </p>
-              </div>
-
-              <div className="space-y-2 pt-2 border-t border-white/10">
-                <span className="text-[10px] font-mono text-neutral-400 uppercase tracking-wider">KEY HIGHLIGHTS:</span>
-                <ul className="space-y-1">
-                  {item.highlights.map((h, i) => (
-                    <li key={i} className="flex items-start gap-2 text-xs text-neutral-300">
-                      <span className="h-1.5 w-1.5 rounded-full bg-white mt-1.5 shrink-0" />
-                      <span>{h}</span>
-                    </li>
+                <h3 className="text-2xl font-black text-[var(--text-primary)]">{personalProfile.name}</h3>
+                <div className="flex flex-wrap gap-1.5">
+                  {personalProfile.roles.map((r) => (
+                    <Badge key={r} variant="accent">{r}</Badge>
                   ))}
-                </ul>
+                </div>
               </div>
-            </motion.div>
-          ))}
-        </div>
-      </section>
 
-      {/* HONORS & RECOGNITION */}
-      <section className="space-y-8">
-        <div>
-          <span className="text-xs font-mono text-neutral-400 uppercase tracking-widest">RECOGNITION</span>
-          <h2 className="font-serif text-3xl font-bold text-white mt-1">
-            Achievements & Milestones
-          </h2>
-        </div>
+              <div className="pt-4 border-t border-[var(--border-subtle)] space-y-3 text-sm text-[var(--text-secondary)]">
+                <div className="flex items-start gap-3">
+                  <GraduationCap className="w-5 h-5 text-[var(--accent-primary)] shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-bold text-[var(--text-primary)] block">Education</span>
+                    <span>{personalProfile.education.degree} in {personalProfile.education.field}</span>
+                    <span className="block text-xs text-[var(--text-muted)]">{personalProfile.education.institution} ({personalProfile.education.startYear}–{personalProfile.education.endYear})</span>
+                  </div>
+                </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {profileData.achievements.map((ach) => (
-            <div key={ach.id} className="glass-panel rounded-2xl p-6 border border-white/10 space-y-3 hover:border-white/20 transition-all">
-              <div className="flex items-center justify-between">
-                <Award className="h-6 w-6 text-white" />
-                <span className="font-mono text-xs font-bold text-neutral-400">{ach.year}</span>
+                <div className="flex items-start gap-3">
+                  <MapPin className="w-5 h-5 text-[var(--accent-primary)] shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-bold text-[var(--text-primary)] block">Location</span>
+                    <span>{personalProfile.education.location.city}, {personalProfile.education.location.state}, {personalProfile.education.location.country}</span>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <Users className="w-5 h-5 text-[var(--accent-primary)] shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-bold text-[var(--text-primary)] block">Campus Filmmaking Clubs</span>
+                    <span>{personalProfile.clubs.join(' & ')}</span>
+                  </div>
+                </div>
               </div>
-              <h4 className="font-serif text-lg font-bold text-white">{ach.title}</h4>
-              <p className="text-xs font-semibold text-neutral-300 font-mono">{ach.issuer}</p>
-              <p className="text-xs text-neutral-400">{ach.description}</p>
+            </Card>
+          </MotionWrapper>
+        </div>
+
+        {/* Right Story Prose */}
+        <div className="lg:col-span-2 space-y-8">
+          <MotionWrapper delay={1}>
+            <Card hoverGlow className="p-8 space-y-6">
+              <h3 className="text-2xl font-bold text-[var(--text-primary)]">My Mindset & Philosophy</h3>
+              {personalProfile.bioStatements.map((paragraph, index) => (
+                <p key={index} className="text-base text-[var(--text-secondary)] leading-relaxed">
+                  {paragraph}
+                </p>
+              ))}
+            </Card>
+          </MotionWrapper>
+
+          <MotionWrapper delay={2}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <Card hoverGlow className="p-6 space-y-3">
+                <Code2 className="w-6 h-6 text-[var(--accent-primary)]" />
+                <h4 className="text-lg font-bold text-[var(--text-primary)]">My Technical Journey</h4>
+                <p className="text-sm text-[var(--text-secondary)] leading-relaxed">
+                  I treat code as an art form. From learning foundational memory logic in C++ to architecting modular Next.js applications, I enjoy building tools that solve real problems cleanly.
+                </p>
+              </Card>
+
+              <Card hoverGlow className="p-6 space-y-3">
+                <Video className="w-6 h-6 text-amber-400" />
+                <h4 className="text-lg font-bold text-[var(--text-primary)]">My Creative Journey</h4>
+                <p className="text-sm text-[var(--text-secondary)] leading-relaxed">
+                  Through cinematography and video editing, I capture emotion, pacing, and atmosphere. Covering 50+ campus and commercial events has honed my eye for detail and visual rhythm.
+                </p>
+              </Card>
             </div>
-          ))}
-        </div>
-      </section>
+          </MotionWrapper>
 
+          <MotionWrapper delay={3}>
+            <Card hoverGlow className="p-8 space-y-4">
+              <h3 className="text-2xl font-bold text-[var(--text-primary)] flex items-center gap-2">
+                <Award className="w-6 h-6 text-[var(--accent-primary)]" />
+                My Long-Term Vision
+              </h3>
+              <p className="text-base text-[var(--text-secondary)] leading-relaxed">
+                This digital ecosystem is not a temporary college assignment. It is designed as my permanent professional home. As I take on new internships, direct feature films, engineer production systems, and launch new projects, I will continuously expand this hub for years to come.
+              </p>
+            </Card>
+          </MotionWrapper>
+        </div>
+      </div>
     </div>
   );
 }

@@ -1,370 +1,450 @@
-"use client";
+// @/app/page.tsx
+'use client';
 
-import Link from "next/link";
-import { motion } from "framer-motion";
-import { Hero3DCanvas } from "@/components/hero/Hero3DCanvas";
-import { profileData } from "@/content/profile";
-import { projectsData } from "@/content/projects";
-import { forgeWeeksData } from "@/content/forge";
-import { ArrowRight, FolderGit2, Mail, FileText, MapPin, GraduationCap, Building2, Camera, Video, Code2, Sparkles, Terminal } from "lucide-react";
-
-const smoothEase = [0.16, 1, 0.3, 1];
+import React from 'react';
+import Link from 'next/link';
+import { personalProfile } from '@/content/personal.content';
+import { projectsData } from '@/content/projects.content';
+import { eventsData } from '@/content/events.content';
+import { skillsData } from '@/content/skills.content';
+import { achievementsData } from '@/content/achievements.content';
+import { filmographyData } from '@/content/filmography.content';
+import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
+import { Badge } from '@/components/ui/Badge';
+import { SocialLinks } from '@/components/shared/SocialLinks';
+import { MotionWrapper } from '@/components/shared/MotionWrapper';
+import { GithubIcon } from '@/components/shared/BrandIcons';
+import {
+  ArrowRight,
+  Code2,
+  Video,
+  Sparkles,
+  FolderGit2,
+  Film,
+  Terminal,
+  Award,
+  Send,
+  Download,
+  Calendar,
+  MapPin,
+  Cpu,
+  FileText,
+} from 'lucide-react';
 
 export default function HomePage() {
-  const featuredProjects = projectsData.slice(0, 3);
-  const latestWeek = forgeWeeksData[forgeWeeksData.length - 1];
+  const featuredProjects = projectsData.filter((p) => p.isFeatured).slice(0, 2);
+  const featuredEvents = eventsData.slice(0, 2);
+  const topSkills = skillsData.filter((s) => s.isFeatured).slice(0, 6);
+  const film1212 = filmographyData[0];
 
   return (
-    <div className="relative overflow-hidden space-y-24 md:space-y-32 pb-16">
-      
-      {/* MINIMALIST HERO VIEWPORT WITH PROFILE PHOTO */}
-      <section className="relative min-h-[88vh] flex items-center justify-center px-4 sm:px-6 lg:px-8 pt-4">
-        <Hero3DCanvas />
-        
-        {/* Minimalist Grid Background Overlay */}
-        <div className="absolute inset-0 bg-minimal-grid pointer-events-none opacity-40" />
+    <div className="space-y-28">
+      {/* 1. Hero Section (80–100vh) */}
+      <section className="min-h-[85vh] flex flex-col justify-center max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative pt-6 pb-12">
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-[var(--accent-glow)] rounded-full blur-3xl opacity-30 pointer-events-none" />
 
-        <div className="relative z-10 mx-auto max-w-7xl w-full">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-center">
-            
-            {/* STARTING SECTION: PROFILE PHOTO CARD */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 15 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              transition={{ duration: 0.7, ease: smoothEase }}
-              className="lg:col-span-5 max-w-sm mx-auto lg:max-w-none w-full group"
-            >
-              <div className="relative aspect-[3/4] w-full overflow-hidden rounded-3xl glass-panel-elevated border border-white/15 shadow-glass-lg p-2.5 transition-all group-hover:border-white/30">
-                <img
-                  src="/profile.jpg?v=2"
-                  alt="Theeran P. - Computer Science Engineering Student & Cinematographer"
-                  className="h-full w-full object-cover object-top rounded-2xl filter grayscale contrast-105 group-hover:grayscale-0 transition-all duration-700"
-                />
-                <div className="absolute inset-0 rounded-3xl bg-gradient-to-t from-black/85 via-black/20 to-transparent pointer-events-none" />
-                
-                {/* Photo Badge overlay */}
-                <div className="absolute bottom-5 left-5 right-5 glass-panel rounded-xl p-3.5 border border-white/15 backdrop-blur-md space-y-1 shadow-glass-md">
-                  <div className="flex items-center gap-2">
-                    <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-                    <span className="text-xs font-mono text-white font-bold">Theeran P.</span>
-                  </div>
-                  <p className="text-[11px] font-mono text-neutral-300">B.E. CSE • Cinematographer & Editor</p>
-                  <div className="flex items-center gap-1 text-[10px] font-mono text-neutral-400 pt-0.5">
-                    <MapPin className="h-3 w-3 text-white" />
-                    <span>Coimbatore, India</span>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-
-            {/* ALIGNED HERO TEXT CONTENT & ACTIONS */}
-            <div className="lg:col-span-7 space-y-7 text-center lg:text-left">
-              
-              {/* Tagline Badge */}
-              <motion.div
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, ease: smoothEase }}
-                className="inline-flex items-center gap-2 rounded-full glass-panel px-4 py-1.5 text-xs text-white border border-white/10 shadow-glass-sm"
-              >
-                <Sparkles className="h-3.5 w-3.5 text-neutral-300" />
-                <span className="font-mono text-[11px] tracking-widest uppercase text-neutral-300 font-bold">WHERE TECHNOLOGY MEETS STORYTELLING</span>
-              </motion.div>
-
-              {/* Main Headline */}
-              <motion.div
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.7, delay: 0.1, ease: smoothEase }}
-                className="space-y-3"
-              >
-                <h1 className="font-serif text-4xl sm:text-6xl font-bold tracking-tight text-white leading-[1.12]">
-                  I Build. I Create. <br className="hidden sm:inline" />
-                  I Capture.
-                </h1>
-                <p className="text-sm sm:text-base text-neutral-300 leading-relaxed font-sans font-normal max-w-2xl">
-                  {profileData.headline}
-                </p>
-                <p className="text-xs sm:text-sm text-neutral-400 leading-relaxed font-sans font-light max-w-xl">
-                  From software development to filmmaking, I continuously explore, learn, and create experiences that leave a lasting impression.
-                </p>
-              </motion.div>
-
-              {/* Quick Info Badges */}
-              <motion.div
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.7, delay: 0.2, ease: smoothEase }}
-                className="flex flex-wrap items-center justify-center lg:justify-start gap-2 pt-1"
-              >
-                <div className="flex items-center gap-1.5 rounded-full glass-panel px-3 py-1 text-xs font-mono text-neutral-300 border border-white/10">
-                  <MapPin className="h-3.5 w-3.5 text-white" />
-                  <span>Coimbatore, India</span>
-                </div>
-                <div className="flex items-center gap-1.5 rounded-full glass-panel px-3 py-1 text-xs font-mono text-neutral-300 border border-white/10">
-                  <GraduationCap className="h-3.5 w-3.5 text-white" />
-                  <span>B.E. Computer Science & Engineering</span>
-                </div>
-                <div className="flex items-center gap-1.5 rounded-full glass-panel px-3 py-1 text-xs font-mono text-neutral-300 border border-white/10">
-                  <Building2 className="h-3.5 w-3.5 text-white" />
-                  <span>Kumaraguru College of Technology</span>
-                </div>
-                <div className="flex items-center gap-1.5 rounded-full glass-panel px-3 py-1 text-xs font-mono text-neutral-300 border border-white/10">
-                  <Camera className="h-3.5 w-3.5 text-white" />
-                  <span>Cinematographer</span>
-                </div>
-                <div className="flex items-center gap-1.5 rounded-full glass-panel px-3 py-1 text-xs font-mono text-neutral-300 border border-white/10">
-                  <Video className="h-3.5 w-3.5 text-white" />
-                  <span>Video Editor</span>
-                </div>
-                <div className="flex items-center gap-1.5 rounded-full glass-panel px-3 py-1 text-xs font-mono text-neutral-300 border border-white/10">
-                  <Code2 className="h-3.5 w-3.5 text-white" />
-                  <span>Software Developer</span>
-                </div>
-              </motion.div>
-
-              {/* Quick Statistics Bar */}
-              <motion.div
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.7, delay: 0.3, ease: smoothEase }}
-                className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 pt-1"
-              >
-                {profileData.stats.map((stat, idx) => (
-                  <div key={idx} className="glass-panel rounded-xl p-2.5 text-center lg:text-left border border-white/10 hover:border-white/20 transition-all duration-300">
-                    <div className="font-serif text-lg font-bold text-white">
-                      {stat.value}<span className="text-xs text-neutral-400">{stat.suffix}</span>
-                    </div>
-                    <div className="text-[10px] text-neutral-400 font-mono tracking-wider uppercase mt-0.5">{stat.label}</div>
-                  </div>
-                ))}
-              </motion.div>
-
-              {/* CTA Action Buttons */}
-              <motion.div
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.7, delay: 0.4, ease: smoothEase }}
-                className="flex flex-wrap items-center justify-center lg:justify-start gap-3 pt-2"
-              >
-                <Link
-                  href="/projects"
-                  className="group flex items-center gap-2 rounded-full bg-white px-6 py-3 text-xs font-mono font-bold text-black hover:bg-neutral-200 transition-all shadow-glass-sm hover:-translate-y-0.5"
-                >
-                  <span>Explore My Work</span>
-                  <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-1 transition-transform" />
-                </Link>
-
-                <Link
-                  href="/forge"
-                  className="flex items-center gap-2 rounded-full glass-panel px-5 py-3 text-xs font-mono font-medium text-white hover:border-white/25 transition-all border border-white/10 hover:-translate-y-0.5"
-                >
-                  <FolderGit2 className="h-4 w-4 text-white" />
-                  <span>View Forge Journey</span>
-                </Link>
-
-                <Link
-                  href="/contact"
-                  className="flex items-center gap-2 rounded-full glass-panel px-5 py-3 text-xs font-mono font-medium text-white hover:border-white/25 transition-all border border-white/10 hover:-translate-y-0.5"
-                >
-                  <Mail className="h-4 w-4 text-white" />
-                  <span>Contact Me</span>
-                </Link>
-
-                <button
-                  disabled
-                  className="flex items-center gap-2 rounded-full glass-panel px-5 py-3 text-xs font-mono font-medium text-neutral-400 opacity-70 border border-white/10 cursor-not-allowed"
-                >
-                  <FileText className="h-4 w-4 text-neutral-400" />
-                  <span>Download Resume (Coming Soon)</span>
-                </button>
-              </motion.div>
-
+        <div className="relative space-y-8 max-w-5xl">
+          <MotionWrapper delay={0}>
+            <div className="flex flex-wrap gap-2.5">
+              <Badge variant="accent" icon={Sparkles}>
+                Computer Science & Engineering @ KCT
+              </Badge>
+              <Badge variant="amber" icon={Video}>
+                Lead Cinematographer
+              </Badge>
+              <Badge variant="default" icon={Code2}>
+                Video Editor
+              </Badge>
             </div>
+          </MotionWrapper>
 
-          </div>
+          <MotionWrapper delay={1}>
+            <h1 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-[var(--text-primary)] leading-[1.08]">
+              I combine <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-amber-400">software engineering</span> and <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-500">cinematography</span> to engineer premium digital experiences.
+            </h1>
+          </MotionWrapper>
+
+          <MotionWrapper delay={2}>
+            <p className="text-lg sm:text-xl text-[var(--text-secondary)] max-w-3xl leading-relaxed font-normal">
+              I am <strong className="text-[var(--text-primary)]">{personalProfile.name}</strong>, a Computer Science student at Kumaraguru College of Technology (2024–2028). I design production-grade web systems and direct visual cinematography for campus and commercial productions.
+            </p>
+          </MotionWrapper>
+
+          <MotionWrapper delay={3}>
+            <div className="flex flex-wrap items-center gap-4 pt-2">
+              <Link href="/projects">
+                <Button variant="primary" size="lg" icon={ArrowRight} iconPosition="right">
+                  Explore My Projects
+                </Button>
+              </Link>
+              <Link href="/forge">
+                <Button variant="glass" size="lg" icon={FolderGit2}>
+                  Launch Forge Workspace
+                </Button>
+              </Link>
+              <Button variant="ghost" size="lg" icon={Download} onClick={() => alert('Resume PDF placeholder: PDF file will be available shortly!')}>
+                Resume
+              </Button>
+            </div>
+          </MotionWrapper>
+
+          <MotionWrapper delay={4}>
+            <div className="pt-4 flex items-center gap-4">
+              <span className="text-xs font-mono text-[var(--text-muted)] uppercase tracking-wider">
+                Connect With Me:
+              </span>
+              <SocialLinks />
+            </div>
+          </MotionWrapper>
         </div>
       </section>
 
-      {/* PHILOSOPHY STATEMENT SECTION */}
-      <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="glass-panel-elevated rounded-2xl p-8 md:p-12 border border-white/10 relative overflow-hidden transition-all hover:border-white/20">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-            
-            <div className="lg:col-span-8 space-y-5">
-              <div className="flex items-center gap-2 text-[11px] font-mono text-neutral-300 tracking-widest uppercase">
-                <Terminal className="h-3.5 w-3.5" />
-                <span>MY PHILOSOPHY</span>
-              </div>
-              <h2 className="font-serif text-2xl sm:text-4xl font-bold text-white leading-snug">
-                "I enjoy learning by building."
+      {/* 2. Quick Introduction & Bento Stats */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
+        <MotionWrapper>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-center bg-[var(--bg-glass)] border border-[var(--border-subtle)] rounded-3xl p-8 sm:p-10 backdrop-blur-xl">
+            <div className="lg:col-span-2 space-y-4">
+              <Badge variant="accent">My Story</Badge>
+              <h2 className="text-3xl sm:text-4xl font-extrabold text-[var(--text-primary)] tracking-tight">
+                Quick Introduction
               </h2>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 text-xs font-mono text-neutral-300">
-                <div className="glass-panel rounded-xl p-3 border border-white/10">
-                  <span className="text-white font-bold block mb-1">01. Learn & Build</span>
-                  <span>Every project teaches me something new.</span>
-                </div>
-                <div className="glass-panel rounded-xl p-3 border border-white/10">
-                  <span className="text-white font-bold block mb-1">02. Event Impact</span>
-                  <span>Every event improves my confidence.</span>
-                </div>
-                <div className="glass-panel rounded-xl p-3 border border-white/10">
-                  <span className="text-white font-bold block mb-1">03. Challenge & Grow</span>
-                  <span>Every challenge helps me grow.</span>
-                </div>
-              </div>
-              <div className="pt-2">
-                <Link
-                  href="/about"
-                  className="inline-flex items-center gap-1.5 text-xs font-mono font-semibold text-white hover:text-neutral-300 transition-colors"
-                >
-                  <span>Read Full About Story</span>
-                  <ArrowRight className="h-3.5 w-3.5" />
+              <p className="text-base text-[var(--text-secondary)] leading-relaxed">
+                I adapt quickly to new environments and continuously enjoy learning new engineering skills and creative disciplines. Alongside pursuing Computer Science Engineering at Kumaraguru College of Technology, I have built 3 years of hands-on experience in cinematography and 2 years in professional video editing.
+              </p>
+              <p className="text-sm text-[var(--text-muted)] leading-relaxed">
+                I am an active member of the campus filmmaking community inside <strong className="text-[var(--text-primary)]">Nigal Club</strong> and <strong className="text-[var(--text-primary)]">Elaris</strong>, while working as a freelance DP and editor.
+              </p>
+              <div>
+                <Link href="/about">
+                  <Button variant="ghost" size="sm" icon={ArrowRight} iconPosition="right">
+                    Read My Full Story & Journey
+                  </Button>
                 </Link>
               </div>
             </div>
 
-            <div className="lg:col-span-4 flex flex-col justify-center gap-4 border-t lg:border-t-0 lg:border-l border-white/10 pt-6 lg:pt-0 lg:pl-8 text-xs font-mono">
-              <div className="space-y-1">
-                <span className="text-neutral-500 block uppercase text-[10px]">EDUCATION</span>
-                <p className="font-semibold text-white">B.E. CSE (2024–2028)</p>
-                <p className="text-[11px] text-neutral-400">Kumaraguru College of Technology</p>
-              </div>
-              <div className="space-y-1">
-                <span className="text-neutral-500 block uppercase text-[10px]">ORGANIZATIONS</span>
-                <p className="font-semibold text-white">Nigal Club & Elaris</p>
-              </div>
-              <div className="space-y-1">
-                <span className="text-neutral-500 block uppercase text-[10px]">CREATIVE DOMAIN</span>
-                <p className="font-semibold text-white">Cinematography & Video Editing</p>
-              </div>
+            {/* Quick Metrics Bento */}
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                { label: 'CS Degree', val: '2024–28', sub: 'KCT Student' },
+                { label: 'Cinematography', val: '3 Years', sub: '50+ Events' },
+                { label: 'Video Editing', val: '2 Years', sub: 'Premiere & Resolve' },
+                { label: 'Forge Weeks', val: '20+ Weeks', sub: 'OS Workspace' },
+              ].map((m) => (
+                <div key={m.label} className="p-4 rounded-2xl bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] space-y-1">
+                  <span className="text-[10px] font-mono text-[var(--text-muted)] uppercase block">{m.label}</span>
+                  <span className="text-xl font-black text-[var(--text-primary)] block">{m.val}</span>
+                  <span className="text-[11px] text-[var(--accent-primary)] font-medium block">{m.sub}</span>
+                </div>
+              ))}
             </div>
-
           </div>
-        </div>
+        </MotionWrapper>
       </section>
 
-      {/* FEATURED PROJECTS SHOWCASE */}
-      <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-8">
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-white/10 pb-4">
+      {/* 3. Featured Projects */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+        <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4">
           <div>
-            <span className="text-[11px] font-mono text-neutral-400 uppercase tracking-widest">FEATURED PROJECTS</span>
-            <h2 className="font-serif text-2xl sm:text-3xl font-bold text-white mt-1">
-              Software & Embedded Showcase
+            <Badge variant="accent" icon={Code2}>Technical Architecture</Badge>
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-[var(--text-primary)] mt-2">
+              Featured Technical Projects
             </h2>
           </div>
-          <Link href="/projects" className="text-xs font-mono text-white hover:text-neutral-300 flex items-center gap-1 font-semibold transition-colors">
-            <span>View All ({projectsData.length})</span>
-            <ArrowRight className="h-3.5 w-3.5" />
+          <Link href="/projects">
+            <Button variant="ghost" size="sm" icon={ArrowRight} iconPosition="right">
+              View All Projects
+            </Button>
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {featuredProjects.map((project) => (
-            <motion.div
-              key={project.id}
-              whileHover={{ y: -4 }}
-              transition={{ duration: 0.3, ease: smoothEase }}
-              className="group rounded-2xl glass-panel border border-white/10 overflow-hidden hover:border-white/25 transition-all flex flex-col justify-between"
-            >
-              <div className="relative aspect-video overflow-hidden bg-neutral-900">
-                <img
-                  src={project.coverImage}
-                  alt={project.title}
-                  className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105 filter grayscale contrast-110"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-brand-primary via-transparent to-transparent opacity-85" />
-                <span className="absolute top-3 left-3 rounded-full bg-black/80 px-2.5 py-0.5 text-[10px] font-mono text-white border border-white/15 backdrop-blur-md">
-                  {project.category}
-                </span>
-              </div>
-
-              <div className="p-6 space-y-4 flex-1 flex flex-col justify-between">
-                <div className="space-y-1.5">
-                  <h3 className="font-serif text-lg font-bold text-white group-hover:text-neutral-300 transition-colors">
-                    {project.title}
-                  </h3>
-                  <p className="text-xs text-neutral-400 line-clamp-2 leading-relaxed font-sans">
-                    {project.subtitle}
-                  </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {featuredProjects.map((proj, idx) => (
+            <MotionWrapper key={proj.id} delay={idx}>
+              <Card enableTilt hoverGlow className="flex flex-col gap-5 h-full">
+                <div className="relative h-52 rounded-xl overflow-hidden bg-black/40">
+                  {/* eslint-disable-next-html-element-suppression */}
+                  <img
+                    src={proj.featuredImage}
+                    alt={proj.title}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
+                  <div className="absolute top-3 left-3 flex gap-2">
+                    <Badge variant="accent">{proj.category}</Badge>
+                  </div>
                 </div>
 
-                <div className="space-y-3 pt-2">
-                  <div className="flex flex-wrap gap-1">
-                    {project.technologies.slice(0, 4).map((tech) => (
-                      <span key={tech} className="rounded bg-neutral-900/80 px-2 py-0.5 text-[9px] font-mono text-neutral-300 border border-white/10">
+                <div className="flex flex-col gap-2 flex-1">
+                  <h3 className="text-2xl font-bold text-[var(--text-primary)]">{proj.title}</h3>
+                  <p className="text-xs font-mono text-[var(--text-muted)]">{proj.subtitle}</p>
+                  <p className="text-sm text-[var(--text-secondary)] leading-relaxed mt-1">
+                    {proj.description}
+                  </p>
+
+                  <div className="flex flex-wrap gap-1.5 mt-3">
+                    {proj.technologies.map((tech) => (
+                      <span key={tech} className="text-[11px] font-mono px-2.5 py-0.5 rounded-md bg-[var(--bg-tertiary)] text-[var(--text-muted)] border border-[var(--border-subtle)]">
                         {tech}
                       </span>
                     ))}
                   </div>
+                </div>
 
-                  <Link
-                    href={`/projects/${project.slug}`}
-                    className="flex items-center gap-1 text-xs font-mono font-bold text-white hover:text-neutral-300 transition-colors pt-1"
+                <div className="pt-3 border-t border-[var(--border-subtle)] flex items-center justify-between gap-3">
+                  <a
+                    href={proj.githubUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-2 rounded-xl bg-[var(--bg-tertiary)] hover:bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors border border-[var(--border-subtle)]"
                   >
-                    <span>Read Case Study</span>
-                    <ArrowRight className="h-3 w-3" />
+                    <GithubIcon className="w-4 h-4" />
+                  </a>
+                  <Link href={`/projects/${proj.slug}`} className="flex-1">
+                    <Button variant="primary" size="sm" icon={ArrowRight} iconPosition="right" className="w-full">
+                      View Case Study
+                    </Button>
                   </Link>
                 </div>
-              </div>
-            </motion.div>
+              </Card>
+            </MotionWrapper>
           ))}
         </div>
       </section>
 
-      {/* PROTOSEM (FORGE EXPERIENCE) ARCHIVE SECTION */}
-      <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="rounded-2xl glass-panel-elevated p-8 md:p-12 border border-white/10 relative overflow-hidden transition-all hover:border-white/20 shadow-glass-md">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-            
-            <div className="lg:col-span-7 space-y-5">
-              <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-[11px] font-mono text-white border border-white/15">
-                <FolderGit2 className="h-3.5 w-3.5" />
-                <span>PROTOSEM INTERNSHIP EXPERIENCE</span>
-              </div>
-
-              <h2 className="font-serif text-3xl sm:text-4xl font-bold text-white leading-tight">
-                Forge Experience: Weeks 0–20
+      {/* 4. Forge Preview */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <MotionWrapper>
+          <div className="relative rounded-3xl overflow-hidden bg-gradient-to-r from-slate-950 via-indigo-950 to-slate-900 p-8 sm:p-12 border border-indigo-500/30 shadow-2xl flex flex-col md:flex-row items-center justify-between gap-8">
+            <div className="space-y-4 max-w-xl">
+              <Badge variant="accent" icon={Terminal}>Signature Workspace</Badge>
+              <h2 className="text-3xl sm:text-4xl font-black text-white tracking-tight">
+                Explore My Forge Experience (Weeks 0–20+)
               </h2>
-
-              <p className="text-xs sm:text-sm text-neutral-400 leading-relaxed font-sans max-w-xl">
-                Forge Experience is where I document my weekly learning journey. Instead of simply showing what I built, I share how I learned, what challenges I faced, and the solutions I explored every week.
+              <p className="text-sm sm:text-base text-gray-300 leading-relaxed">
+                I engineered an OS-inspired desktop workspace where you can inspect my week-by-week learning progress, file hierarchies, challenges faced, team member links, and reflections.
               </p>
-
-              <div className="pt-2">
-                <Link
-                  href="/forge"
-                  className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-xs font-mono font-bold text-black hover:bg-neutral-200 transition-all hover:-translate-y-0.5"
-                >
-                  <FolderGit2 className="h-4 w-4" />
-                  <span>Open Protosem Forge Workspace</span>
-                  <ArrowRight className="h-3.5 w-3.5" />
+              <div className="pt-2 flex items-center gap-3">
+                <Link href="/forge">
+                  <Button variant="accent" size="lg" icon={FolderGit2}>
+                    Launch Forge Workspace
+                  </Button>
                 </Link>
               </div>
             </div>
 
-            {/* Folder Mock Preview */}
-            <div className="lg:col-span-5 flex justify-center">
-              <div className="w-full max-w-sm glass-panel rounded-xl p-5 border border-white/15 space-y-3 shadow-glass-md hover:border-white/25 transition-all">
-                <div className="flex items-center justify-between border-b border-white/10 pb-2">
-                  <span className="font-mono text-[11px] text-white font-bold">WEEK {latestWeek.weekNumber}</span>
-                  <span className="rounded-full bg-white/10 px-2 py-0.5 text-[9px] font-mono text-white border border-white/15">
-                    {latestWeek.status}
-                  </span>
+            <div className="w-full md:w-88 bg-black/70 border border-white/10 rounded-2xl p-5 font-mono text-xs text-gray-300 space-y-3 shadow-2xl">
+              <div className="flex items-center justify-between pb-2 border-b border-white/10 text-indigo-400 font-bold">
+                <span>📁 / forge / semester-1 / week-20</span>
+                <span className="text-[10px] text-emerald-400">Active</span>
+              </div>
+              <div className="space-y-1.5 text-gray-400">
+                <div className="flex items-center gap-2 text-white">
+                  <FileText className="w-3.5 h-3.5 text-amber-400" />
+                  <span>overview.md</span>
                 </div>
-                <h4 className="font-serif text-sm font-bold text-white">{latestWeek.title}</h4>
-                <p className="text-xs text-neutral-400">{latestWeek.summary}</p>
-                <div className="pt-1 flex items-center justify-between text-[10px] font-mono text-neutral-400">
-                  <span>{latestWeek.deliverables?.length || 0} Deliverables</span>
-                  <span>{latestWeek.dateRange}</span>
+                <div className="flex items-center gap-2">
+                  <Terminal className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>technologies.json</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Code2 className="w-3.5 h-3.5 text-indigo-400" />
+                  <span>team.ts</span>
                 </div>
               </div>
+              <div className="text-emerald-400 text-[11px] pt-2 border-t border-white/10">
+                ✓ 21 Weeks Loaded & Filterable (⌘K)
+              </div>
             </div>
+          </div>
+        </MotionWrapper>
+      </section>
 
+      {/* 5. Featured Events */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+        <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4">
+          <div>
+            <Badge variant="amber" icon={Video}>Cinematography Works</Badge>
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-[var(--text-primary)] mt-2">
+              Featured Event Coverages
+            </h2>
+          </div>
+          <Link href="/events">
+            <Button variant="ghost" size="sm" icon={ArrowRight} iconPosition="right">
+              View All Events
+            </Button>
+          </Link>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {featuredEvents.map((evt, idx) => (
+            <MotionWrapper key={evt.id} delay={idx}>
+              <Card enableTilt hoverGlow className="flex flex-col gap-5 h-full">
+                <div className="relative h-56 rounded-xl overflow-hidden bg-black/60">
+                  {/* eslint-disable-next-html-element-suppression */}
+                  <img
+                    src={evt.coverImage}
+                    alt={evt.title}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
+                  <div className="absolute top-3 left-3 flex gap-2">
+                    <Badge variant={evt.category === 'institutional' ? 'accent' : 'amber'}>
+                      {evt.typeTag}
+                    </Badge>
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-2 flex-1">
+                  <div className="flex items-center gap-3 text-xs text-[var(--text-muted)] font-mono">
+                    <div className="flex items-center gap-1">
+                      <Calendar className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
+                      <span>{evt.date}</span>
+                    </div>
+                    <span>•</span>
+                    <div className="flex items-center gap-1">
+                      <MapPin className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
+                      <span>{evt.location}</span>
+                    </div>
+                  </div>
+                  <h3 className="text-2xl font-bold text-[var(--text-primary)]">{evt.title}</h3>
+                  <span className="text-xs text-amber-400 font-semibold">My Role: {evt.role}</span>
+                  <p className="text-sm text-[var(--text-secondary)] leading-relaxed">
+                    {evt.description}
+                  </p>
+                </div>
+
+                <div className="pt-3 border-t border-[var(--border-subtle)]">
+                  <Link href={`/events/${evt.slug}`}>
+                    <Button variant="glass" size="sm" icon={ArrowRight} iconPosition="right" className="w-full">
+                      View Event Story & Credits
+                    </Button>
+                  </Link>
+                </div>
+              </Card>
+            </MotionWrapper>
+          ))}
+        </div>
+      </section>
+
+      {/* 6. Skills Snapshot */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+        <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4">
+          <div>
+            <Badge variant="accent" icon={Cpu}>Stack Overview</Badge>
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-[var(--text-primary)] mt-2">
+              Skills Snapshot
+            </h2>
+          </div>
+          <Link href="/skills">
+            <Button variant="ghost" size="sm" icon={ArrowRight} iconPosition="right">
+              View All Skills & Tools
+            </Button>
+          </Link>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {topSkills.map((skill, idx) => (
+            <MotionWrapper key={skill.id} delay={idx}>
+              <Card hoverGlow className="p-5 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-bold text-base text-[var(--text-primary)]">{skill.name}</h3>
+                  <Badge variant="accent">{skill.levelLabel}</Badge>
+                </div>
+                <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
+                  {skill.description}
+                </p>
+                <div className="w-full h-1.5 rounded-full bg-[var(--bg-tertiary)] overflow-hidden pt-1">
+                  <div
+                    className="h-full bg-gradient-to-r from-[var(--accent-primary)] to-indigo-400 rounded-full"
+                    style={{ width: `${skill.level}%` }}
+                  />
+                </div>
+              </Card>
+            </MotionWrapper>
+          ))}
+        </div>
+      </section>
+
+      {/* 7. Achievements & Filmography Feature */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+        <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4">
+          <div>
+            <Badge variant="accent" icon={Award}>Credentials & Films</Badge>
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-[var(--text-primary)] mt-2">
+              Achievements & Feature Short "12:12"
+            </h2>
+          </div>
+          <Link href="/achievements">
+            <Button variant="ghost" size="sm" icon={ArrowRight} iconPosition="right">
+              View Achievements
+            </Button>
+          </Link>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-center">
+          {/* Filmography Feature Card */}
+          <div className="relative h-80 rounded-2xl overflow-hidden bg-black border border-white/10 p-6 flex flex-col justify-end group">
+            {/* eslint-disable-next-html-element-suppression */}
+            <img
+              src={film1212.posterImage}
+              alt={film1212.title}
+              className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-60"
+            />
+            <div className="relative z-10 space-y-2">
+              <Badge variant="amber" icon={Film}>{film1212.status}</Badge>
+              <h3 className="text-3xl font-black text-white">&quot;{film1212.title}&quot;</h3>
+              <p className="text-xs text-rose-300 font-mono italic">{film1212.logline}</p>
+              <div className="pt-2">
+                <Link href="/filmography">
+                  <Button variant="accent" size="sm" icon={ArrowRight} iconPosition="right">
+                    View Film Details
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          </div>
+
+          {/* Achievements Grid */}
+          <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {achievementsData.map((item) => (
+              <Card key={item.id} hoverGlow className="p-5 space-y-2">
+                <div className="flex items-center justify-between">
+                  <Badge variant="accent">{item.category}</Badge>
+                  <span className="text-[11px] font-mono text-[var(--text-muted)]">{item.date}</span>
+                </div>
+                <h4 className="font-bold text-base text-[var(--text-primary)]">{item.title}</h4>
+                <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
+                  {item.description}
+                </p>
+              </Card>
+            ))}
           </div>
         </div>
       </section>
 
+      {/* 8. Contact CTA */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <MotionWrapper>
+          <div className="relative rounded-3xl bg-gradient-to-r from-indigo-900 via-purple-950 to-slate-950 p-8 sm:p-12 border border-indigo-500/30 shadow-2xl flex flex-col md:flex-row items-center justify-between gap-8 text-center md:text-left">
+            <div className="space-y-3 max-w-xl">
+              <Badge variant="accent">Let's Connect</Badge>
+              <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
+                Interested in Collaborating or Hiring Me?
+              </h2>
+              <p className="text-sm text-gray-300 leading-relaxed">
+                Whether you have a freelance video editing project, a cinematography shoot, or a technical software engineering inquiry, send me a message directly.
+              </p>
+            </div>
+            <div>
+              <Link href="/contact">
+                <Button variant="accent" size="lg" icon={Send}>
+                  Send Me a Message
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </MotionWrapper>
+      </section>
     </div>
   );
 }
